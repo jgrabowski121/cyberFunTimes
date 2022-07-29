@@ -126,7 +126,12 @@ def q9(strng):
     'hell9oworld7', the returned character should be 'a' which has
     the ascii value of 97.
     '''
+     chars = []
+    for i in strng:
+        if i.isnumeric():
+            chars.append(i)
 
+    return chr(int(''.join(chars)))
 
 def q10(arr):
     '''
@@ -134,4 +139,8 @@ def q10(arr):
     the first non-consecutive value. If all values are consecutive, return
     None. For example, given [1,2,3,4,6,7], the returned value should be 6. 
     '''
-    pass
+      temp = 0
+    for i,c in enumerate(arr):
+        if arr[i+1]- arr[i] !=1:
+            return arr[i+1]
+
