@@ -166,7 +166,7 @@ def q10(numlist):
     for i in numlist:
         if i < 0:
             return False
-
+        
     return True
 
                                                                               154,0-1       Bot
