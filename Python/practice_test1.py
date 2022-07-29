@@ -13,6 +13,8 @@ def q1(floatstr):
     for i, c  in enumerate(_list):
         myList.append(float(c))
     return myList
+    # return [flost(i) for i in floatstr.split(',')]
+    # return list(map(float, floatstr.splt(',')))
 
 def q2(*args):
     '''
@@ -25,10 +27,10 @@ def q2(*args):
     count = 0
     for i in args:
         count += 1
-
-
     return(sum(args)/ count)
-
+    
+    #return sum(args) / len (args)   
+       
 def q3(lst,n):
     '''
     TLO: 112-SCRPY004, LSA 3
@@ -36,6 +38,7 @@ def q3(lst,n):
     list containing the last n entries in lst.
     '''
     return lst[-n:len(lst)]
+    #return 1st[-n:]
 
 def q4(strng):
     '''
@@ -47,10 +50,11 @@ def q4(strng):
     _list = []
     for i in strng:
         _list.append(ord(i))
-
     return _list
 
-
+    #return [ord(i) for i in string]
+    #return list(map(ord,strng))
+    
 def q5(strng):
     '''
     TLO: 112-SCRPY002, LSA 1,3
@@ -61,6 +65,8 @@ def q5(strng):
     _tup = tuple(strng.split())
     return _tup
 
+    #return tuple(strng.splt())
+    
 def q6(catalog, order):
     '''
     TLO: 112-SCRPY007, LSA 2
@@ -92,7 +98,17 @@ def q6(catalog, order):
         _sum += (catalog[i[0]]) * i[1]
     return _sum
 
-def q7(filename):
+    '''
+    total = 0
+    for product, quantity in order:
+        total += catalog[product] * quantity
+    return total
+    
+    #"It's so fu**ing easy"
+    '''
+    
+    
+    def q7(filename):
     '''
     TLO: 112-SCRPY005, LSA 1
     Given a filename, open the file and return the length of the first line 
@@ -119,7 +135,7 @@ def q8(filename,lst):
                 break
             else:
                 fp.write(i + '\n')
-
+                #fp.write(f{'{i}\n')
 def q9(miltime):
     '''
     TLO: 112-SCRPY003, LSA 1
