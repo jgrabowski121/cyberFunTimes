@@ -1,0 +1,7 @@
+#There is an array with some numbers. All numbers are equal except for one. Try to find it!
+
+def find_uniq(arr):
+    _set = set(arr)
+    for i in _set:
+        if arr.count(i) == 1:
+            return i
