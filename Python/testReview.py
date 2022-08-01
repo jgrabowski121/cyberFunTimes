@@ -85,6 +85,7 @@ with open(infile, 'r') as fp0:
 with open(outfile, 'w') as fp1:
     fp1.writelines(lines0)
             
+myEmail = 'aaron.a.anderson@gmail.com'
             
 
 
