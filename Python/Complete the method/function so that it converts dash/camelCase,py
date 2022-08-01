@@ -1,0 +1,25 @@
+Complete the method/function so that it converts dash/underscore 
+delimited words into camel casing. The first word within the 
+output should be capitalized only if the original word was 
+capitalized (known as Upper Camel Case, also often referred 
+to as Pascal case). 
+
+def to_camel_case(text):
+    #your code here
+    print(text)
+    _list = []
+    if text.count('-') > 0:
+        _list = list(text.split('-'))
+    else:
+        _list = list(text.split('_'))
+    
+    for i, c in enumerate(_list):
+        _temp = list(c)
+        if i == 0:
+            continue
+        else:
+            _temp[0] = c[0].upper()
+        _list[i] = str(''.join(_temp))
+        print(_list)
+        
+    return str(''.join(_list))
