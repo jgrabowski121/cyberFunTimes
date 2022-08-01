@@ -68,7 +68,13 @@ for i in myRoster:
         myDict[i] = 1
 
 
+with open(infile, 'r') as fp:
+    print(fp.readlines()[:3])
+#>> prints first 3 lines
 
+with open(infile, 'r') as fp:
+    print(fp.read()[:3])
+#>> prints first 3 chars of the file          
 
 
 
