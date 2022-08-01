@@ -87,6 +87,15 @@ with open(outfile, 'w') as fp1:
             
 myEmail = 'aaron.a.anderson@gmail.com'
             
+_list = []
+_list2 = []
+_list = myEmail.split('@')
+_list = '.'.join(_list)
+_list2 = _list.split('.')
+final = _list2[:-1]
+
+ 
+            
 
 
 
