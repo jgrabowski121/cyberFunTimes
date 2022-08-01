@@ -76,7 +76,16 @@ with open(infile, 'r') as fp:
     print(fp.read()[:3])
 #>> prints first 3 chars of the file          
 
-
+#copy from one file to another
+infile = 'myfile.txt'
+outfile = 'outfile.txt'
+with open(infile, 'r') as fp0:
+    lines0 = fp0.readlines()
+            
+with open(outfile, 'w') as fp1:
+    fp1.writelines(lines0)
+            
+            
 
 
 
