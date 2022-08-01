@@ -46,6 +46,29 @@ domain = 'cornetto'
 
 f'{first}.{middle[0]}.{last}@[domain}.com'
 
+f'{first[0]}.{middle[0]}.{last[:5]}@[domain}.com'
+
+
+#dictionary
+
+myDict = {}
+myDict['Pvt'] = 'E-1'
+>>myDict
+{'Pvt': 'E-1'}
+for i in myDict:
+    print(myDict[i]) #returns the values
+    print(i) #returns the key
+    
+myDict = {}
+myRoster = ['PFC", 'LCpl', 'LCpl']
+for i in myRoster:
+    if i in myDict:
+        myDict[i] += 1
+    else:
+        myDict[i] = 1
+
+
+
 
 
 
