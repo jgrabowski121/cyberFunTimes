@@ -1,0 +1,11 @@
+# Tools
+explainbash.com
+
+#> man bash
+#  prints out the bash manual
+#  g top
+#  G bottom
+#  / search for a patterns
+#    n next instance of match
+
+# curl cheat.sh/grep
