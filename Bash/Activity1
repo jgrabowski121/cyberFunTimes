@@ -44,7 +44,7 @@ Using ONLY the find command, find all files on the system with inode 4026532575
 and print only the filename to the screen, not the absolute path to the file, 
 separating each filename with a newline. Ensure unneeded output is not visible.
 
-find / -inode 4026532575 -printf "%f\n"
+find / -inode 4026532575 -printf "%f\n" >2 /dev/null
 
 Activity 5: 
 
