@@ -9,3 +9,15 @@ explainbash.com
 #    n next instance of match
 
 # curl cheat.sh/grep
+
+
+
+# Activiity 1-1
+#Activity: Using Brace-Expansion, create the following directories within the $HOME directory:
+
+    #1123
+    #1134
+    #1145
+    #1156
+
+mkdir $HOME/{1123,1124,1145,1156}
