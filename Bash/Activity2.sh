@@ -1,3 +1,12 @@
+6
+Write a basic bash script that greps ONLY the IP addresses in the text file provided (named StoryHiddenIPs in the current directory); 
+sort them uniquely by number of times they appear.
+
+It is not important to have a regular expression that only catches fully valid IP addresses. It is more important that you become 
+familiar with creating and using regular expressions. Below, there are some useful websites that you can use to visually see what 
+your regular expression pattern is matching on.
+
+grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}" StoryHiddenIPs | sort | uniq -c | sort -r
 
 7
     Using ONLY the awk command, write a BASH one-liner script that extracts ONLY the names of all the system and user accounts that are not UIDs 0-3.
