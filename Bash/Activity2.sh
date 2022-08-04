@@ -46,6 +46,10 @@ awk -F: -v "awk_var=$a" 'BEGIN {OFS=":"} {$2=awk_var} {print}' $HOME/PASS/shadow
 
 find $HOME -type f -name '*.bin*' | rev | cut -d/ -f2- | rev | sort -u
 
+or 
+
+find $HOME -type f -name '*.bin*' printf("h%\n) | sort -u
+
 12
     
     Write a script which will copy the last entry/line in the passwd-like file specified by the $1 positional parameter
