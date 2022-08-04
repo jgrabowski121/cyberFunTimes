@@ -37,3 +37,52 @@ awk -F: -v "awk_var=$a" 'BEGIN {OFS=":"} {$2=awk_var} {print}' $HOME/PASS/shadow
     Using ONLY sed, write all lines from $HOME/passwd into $HOME/PASS/passwd.txt that do not end with either /bin/sh or /bin/false.
     
     sed -e '/\/bin\/sh/d' -e '/\/bin\/false/d' $HOME/passwd > $HOME/PASS/passwd.txt
+11
+
+    Using find, find all files under the $HOME directory with a .bin extension ONLY.
+    Once the file(s) and their path(s) have been found, remove the file name from the absolute path output.
+    Ensure there is no trailing / at the end of the directory path when outputting to standard output.
+    You may need to sort the output depending on the command(s) you use.
+
+find $HOME -type f -name '*.bin*' | rev | cut -d/ -f2- | rev | sort -u
+
+12
+    
+    Write a script which will copy the last entry/line in the passwd-like file specified by the $1 positional parameter
+    Modify the copied line to change:
+        User name to the value specified by $2 positional parameter
+        Used id and group id to the value specified by $3 positional parameter
+        Home directory to a directory matching the user name specified by $2 positional parameter under the /home directory
+        The default shell to `/bin/bash'
+    Append the modified line to the end of the file
+
+#/bin/bash
+
+tail -1 $1 |
+awk -F: -v "name=$2" -v "id=$3" 'BEGIN {OFS=":"} {$1=name} {$3=id}{$4=id} {$6="/home/"name}{$7="/bin/bash"} {print}' >> $1
+
+13
+
+
+    Find all executable files under the following four directories:
+        /bin
+        /sbin
+        /usr/bin
+        /usr/sbin
+    Sort the filenames with absolute path, and get the md5sum of the 10th file from the top of the list.
+
+md5sum $(find /sbin /bin /usr/bin -type f -executable | sort -u | head -10 | tail -1) | cut -d/ -f1.
+
+14
+
+Using any BASH command complete the following:
+
+    Sort the /etc/passwd file numerically by the GID field.
+    For the 10th entry in the sorted passwd file, get an md5 hash of that entry’s home directory.
+    Output ONLY the MD5 hash of the directory's name to standard output
+    
+cat /etc/passwd | cut -d: -f4,6 | sort -n | head -10 | tail -1 | cut -d: -f2 | md5sum | cut -d' ' -f1
+
+15
+
+
