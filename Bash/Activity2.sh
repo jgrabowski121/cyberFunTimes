@@ -85,4 +85,20 @@ cat /etc/passwd | cut -d: -f4,6 | sort -n | head -10 | tail -1 | cut -d: -f2 | m
 
 15
 
+    Write a script which will find and hash the contents 3 levels deep from each of these directories: /bin /etc /var
+    Your script should:
+        Exclude named pipes. These can break your script.
+        Redirect STDOUT and STDERR to separate files.
+        Determine the count of files hashed in the file with hashes.
+        Determine the count of unsuccessfully hashed directories.
+        Have both counts output to the screen with an appropriate title for each count.
+
+#/bin/bash
+
+md5sum $(find /bin /etc /var -maxdepth 3) 2>err.txt 1>good.txt
+
+echo "Successfully Hashed Files: "$(wc -l good.txt | awk '{ print $1 }')
+echo "Unsuccessfully Hashed Directories: "$( grep directory err.txt | wc | awk '{ print $1 }')
+
+
 
