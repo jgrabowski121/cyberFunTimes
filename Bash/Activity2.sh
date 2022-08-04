@@ -103,6 +103,3 @@ md5sum $(find /bin /etc /var -maxdepth 3) 2>err.txt 1>good.txt
 
 echo "Successfully Hashed Files: "$(wc -l good.txt | awk '{ print $1 }')
 echo "Unsuccessfully Hashed Directories: "$( grep directory err.txt | wc | awk '{ print $1 }')
-
-
-
