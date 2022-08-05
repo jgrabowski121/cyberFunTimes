@@ -75,3 +75,16 @@ do
     mkdir "$HOME/$value"  
     echo $value:x:$(cat $HOME/$value.txt):$(cat $HOME/$value.txt):root:'$HOME'/$value:/bin/bash   >> $HOME/passwd
 done
+
+20
+
+
+    Write a bash script that will find all the files in the /etc directory, and obtains the octal permission 
+    of those files. The stat command will be useful for this task.
+    Depending how you go about your script, you may find writing to the local directory useful. What you must 
+    sperate out from the initial results are the octal permissions of 0-640 and those equal to and greater 
+    than 642, ie 0-640 goes to low.txt, while 642 is sent to high.txt.
+    Have your script uniquely sort the contents of the two files by count, numerically-reversed, and output the 
+    results, with applicable titles, to the screen. An example of the desired output is shown below.
+        NOTE: There is a blank line being printed between the two sections of the output below.
+
