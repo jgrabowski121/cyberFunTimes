@@ -69,3 +69,9 @@ tar -czf file.tar.gz file.zip
     The default shell will be /bin/bash
     The other fields in the new entries should match root's entry
     Users should be created in the order specified
+    
+    for value in 'LARRY' 'CURLY' 'MOE'
+do  
+    mkdir "$HOME/$value"  
+    echo $value:x:$(cat $HOME/$value.txt):$(cat $HOME/$value.txt):root:'$HOME'/$value:/bin/bash   >> $HOME/passwd
+done
