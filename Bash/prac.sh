@@ -14,6 +14,13 @@ Create a script that will perform the following actions:
   cat $infile | sed 's/cat/dog/g' | sed 's/Navy/Army/g' > $outfile
 }
 
+
+
+ function q1()
+ {
+ sed -e "s/cat/dog/g" -e "s/Navy/Army/g $infile > $outfile
+ }
+
 2
 
 Create a script that will print to standard output all user names from the /etc/passwd file.
@@ -52,6 +59,7 @@ function q1()
   #Valid Variables are:
   dirname=$1
   ls $dirname | wc -l
+  #find $dirname -type f | wc -l
 }
 
 5
