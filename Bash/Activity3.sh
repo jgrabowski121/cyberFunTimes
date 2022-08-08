@@ -93,27 +93,20 @@ done
 rm low.txt
 rm high.txt
 
-for i in {0..640}
+A=$(find /etc -type f -exec stat -c %a {} +)
+for i in $A
 do
-    if [[ $(find /etc -perm  $i 2> /dev/null | wc | awk '{print $1}') -gt 0 ]]; then
-        echo -n $i' ' >> low.txt
-        find /etc -perm  $i 2> /dev/null | wc | awk '{print $1}' >> low.txt
-
+    if [[ i -gt 641 ]]; then
+        echo $i >> high.txt
+    else
+        echo $i >> low.txt
     fi  
 done
-
-for i in {642..777}
-do
-    if [[ $(find /etc -perm  $i 2> /dev/null | wc | awk '{print $1}') -gt 0 ]]; then
-        echo -n $i' ' >> high.txt
-        find /etc -perm  $i 2> /dev/null | wc | awk '{print $1}' >> high.txt
-    fi  
-done
-
 
 echo Files w/ OCTAL Perm Values 642+:
-awk '{for (i =NF; i>0;i--) {printf "%s ", $i}; print ""}' ./high.txt | sort | uniq | sort -nr
+cat ./high.txt | sort | uniq -c | sort -nr
 echo ""
 
-echo Files w/ OCTAL PermValues 0-640:
-awk '{for (i =NF; i>0;i--) {printf "%s ", $i}; print ""}' ./low.txt | sort | uniq | sort -nr
+echo Files w/ OCTAL Perm Values 0-640:
+cat ./low.txt | sort | uniq -c | sort -nr
+
