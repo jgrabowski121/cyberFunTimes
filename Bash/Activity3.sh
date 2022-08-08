@@ -56,7 +56,7 @@ echo "12345" | md5sum | cut -d" " -f1 >  file1
 echo "6789" | md5sum  | cut -d" " -f1  >   file2
 echo "abcdef" | md5sum | cut -d" " -f1 > file3
 
-zip file.zip file1 file2 file3
+zip file.zip file1 file2 file3 # zip -j $HOME/ZIP/file.zip $HOME/ZIP/file{1,2,3}
 
 tar -czf file.tar.gz file.zip
 
@@ -88,3 +88,32 @@ done
     results, with applicable titles, to the screen. An example of the desired output is shown below.
         NOTE: There is a blank line being printed between the two sections of the output below.
 
+#!/bin/bash
+
+rm low.txt
+rm high.txt
+
+for i in {0..640}
+do
+    if [[ $(find /etc -perm  $i 2> /dev/null | wc | awk '{print $1}') -gt 0 ]]; then
+        echo -n $i' ' >> low.txt
+        find /etc -perm  $i 2> /dev/null | wc | awk '{print $1}' >> low.txt
+
+    fi  
+done
+
+for i in {642..777}
+do
+    if [[ $(find /etc -perm  $i 2> /dev/null | wc | awk '{print $1}') -gt 0 ]]; then
+        echo -n $i' ' >> high.txt
+        find /etc -perm  $i 2> /dev/null | wc | awk '{print $1}' >> high.txt
+    fi  
+done
+
+
+echo Files w/ OCTAL Perm Values 642+:
+awk '{for (i =NF; i>0;i--) {printf "%s ", $i}; print ""}' ./high.txt | sort | uniq | sort -nr
+echo ""
+
+echo Files w/ OCTAL PermValues 0-640:
+awk '{for (i =NF; i>0;i--) {printf "%s ", $i}; print ""}' ./low.txt | sort | uniq | sort -nr
