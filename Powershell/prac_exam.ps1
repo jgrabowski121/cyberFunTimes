@@ -73,6 +73,9 @@ function q9($addr) {
     $pattern = '^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$'
     if ($addr -match $pattern) {return $True}
     else {return $false}
+    
+    
+    # return $addr -as [IPAddress] -as [Bool]
 
 }
 function q10 ($filepath,$lasthash) {
