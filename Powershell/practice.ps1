@@ -13,7 +13,6 @@ function q1($var1,$var2,$var3,$var4) {
     <#
 
         $sum = ($var1*$var2*$var3*$var4)
-
         return $sum
 
     #>
@@ -57,13 +56,9 @@ function q2($arr,$rows,$cols,$key) {
        foreach($whatever in $arr) {
 
             if($whatever[0] -eq $key) {
-
                 return $whatever[9]
-
                 }
-
             }
-
             return -1
 
         #If you put a 'return -1' within the foreach, it breaks out of the loop
@@ -115,17 +110,11 @@ function q3 {
         $high = 0
 
         while ($num -ne -1){
-
             [int]$num = Read-Host -Prompt "put in a positive number"
-
             if ($num -gt $high){
-
                 $high = $num
-
             }
-
         }
-
         return $high
 
     #>
@@ -135,17 +124,12 @@ function q3 {
     $ints = @()
 
     do {
-
         [int]$read = Read-Host -Prompt "put in a positive number"
-
         if ( $read -ne -1 ) {
-
             $ints += $read
-
         }
 
     } Until ( $read -eq -1 )
-
     return ($ints | Measure-Object -Maximum).Maximum
 
   
@@ -193,9 +177,7 @@ function q4($filename,$whichline) {
 #Option 4
 
     foreach ($line in $filename) {
-
         return (Get-Content -Path $filename -TotalCount 50)[$whichline]
-
         }
 
 }
@@ -229,13 +211,9 @@ function q6 {
     $sum = 0 
 
         foreach ( $element in $input) {
-
              $sum += $element    
-
         }
-
         return $sum
-
 }
 
 function q7 {
