@@ -1,0 +1,2287 @@
+Welcome to the cyberFunTimes wiki!
+Instances: https://vta.cybbh.space/horizon/project/instances/
+https://os.cybbh.io/public/os/latest/index.html
+
+---------------------------------------------------------------------------------------
+OS Review
+---------------------------------------------------------------------------------------
+0. Pick the correct answer   
+
+### Linux
+Process validity: Why is it happening?
+
+* Where am I?
+* Who am I?
+* What can I do? `sudo -l`  
+* Whats going on?
+* What is that?
+* Why is that happening?
+* How is that happening?
+* Whats in there?
+
+* Network 
+  * `netstat`  
+  * `sudo ss -ntlp`  
+    * n port number
+    * t tcp
+    * l listening
+    * p process
+    >If you notice an odd port you can investigate using top/htop/ps -elf
+  * `htop` tree view  
+If PID of 1 look for services
+/lib/systemd/system
+/etc/systemd/system  
+For ps use --forest  
+
+### Persistence 
+cronjobs  
+* You will see a capitol C
+* `sudo crontab -l -u <username>`  
+* Check for jobs
+  * `/var/spool/cron/crontabs` ->> user cronjobs  
+  * If owned by root check;
+    * `/etc/crontabs`  
+    * `/etc/cron.d`  
+    * ` var/spool/cron/crontabs`  
+
+timers
+
+init (system5)
+
+configuration files
+* /etc/bash_rc -> interactive non-login shells  
+* ~/.bashrc   
+* ~/.bash_profile  
+* /etc/profile -> system wide for interactive login shells  
+* ~/.profile  
+* /etc/profile.d  
+ __Should I raise my hand?? -->>> YES__
+
+### Windows
+* Look for strange ports
+* tcpview ->> if you have sysinternals
+
+Sysinternals
+```
+PS C:\> net use * http://live.sysinternals.com
+Drive X: is now connected to http://live.sysinternals.com.
+
+The command completed successfully.
+
+PS C:\> Get-PSDrive
+
+Name           Used (GB)     Free (GB) Provider      Root                                                                                                                                                                    CurrentLocation
+----           ---------     --------- --------      ----                                                                                                                                                                    ---------------
+Alias                                  Alias
+C                  16.51         15.48 FileSystem    C:\
+Cert                                   Certificate   \
+Env                                    Environment
+Function                               Function
+HKCU                                   Registry      HKEY_CURRENT_USER
+HKLM                                   Registry      HKEY_LOCAL_MACHINE
+Variable                               Variable
+WSMan                                  WSMan
+X                  16.51         15.48 FileSystem    \\live.sysinternals.com\DavWWWRoot
+Y                   7.74         24.26 FileSystem    \\file-server\warrior share
+y                   7.74         24.26 FileSystem    \\file-server\warrior share
+Z                  16.51         15.48 FileSystem    \\live.sysinternals.com\tools
+z                  16.51         15.48 FileSystem    \\live.sysinternals.com\tools
+```
+`netstat -anb`  
+`Get-NetTCPConnection`  
+
+Check Process
+* `Get-Process`  
+  * Get all info 
+    Get-Process svchost | select name,id,path
+
+```
+PS C:\> Get-Process svchost |select name,id,path
+
+Name      Id Path
+----      -- ----
+svchost    8 C:\windows\System32\svchost.exe
+svchost  752 C:\windows\system32\svchost.exe
+svchost  760 C:\windows\System32\svchost.exe
+svchost  784 C:\windows\system32\svchost.exe
+svchost  804 C:\windows\system32\svchost.exe
+```
+Process Explorer
+Autoruns
+taskmanager
+
+#### Logging
+* Recycle bin
+  * Get-ItemProperty 
+* bam
+* prefetch
+* jump table
+* user assist
+
+#### Registry
+* reg query
+* get-item
+
+#### Scheduled task
+* Task scheduler ->> Do not look in Microsoft section
+* autoruns (sysinternals)
+
+#### Profiles
+All Users, All Hosts | $PsHome\Profile.ps1
+-- | --
+All Users, Current Host | $PsHome\Microsoft.PowerShell_profile.ps1
+Current User, All Hosts | $Home\[My]Documents\Profile.ps1
+Current User, Current Host | $Home\[My ]Documents\WindowsPowerShell\Profile.ps1
+
+>Check with text-path
+
+Mechanism: What caused it to kick off (example in a run key)
+* Do not look in drivers  
+* Do not look in DLLs  
+* Do not look in strings of DLLs  
+* Do not look in binaries  
+* You __Can__ look at .txt files and scripts  
+
+---------------------------------------------------------------------------------------
+Artifacts Adutiting and Logging
+---------------------------------------------------------------------------------------
+
+
+# Theses are some notes
+
+
+#### Identify auditing activities
+
+Windows Artifacts
+>Anything left behind after code execution: Gives a historical analysis  
+of the machine
+
+* UserAssist
+* Windows Background Activity Moderator (BAM)
+* Recycle Bin
+* Prefetch
+* Jump Lists
+* Recent Files
+* Browser Artifacts
+
+Getting user SID
+
+```
+get-wmiobject win32_useraccount | select name,sid <-- (PowerShell)
+Get-LocalUser | select Name,SID <-- (PowerShell)
+wmic useraccount get name,sid <-- (CMD.EXE ONLY)
+```
+##### USERASSIST
+* Registry key that tracks the GUI-based programs that were ran by a particular user
+* Use when looking for shortcuts
+* View executable Files run
+```
+Get-ItemProperty 'REGISTRY::HKEY_USERS\*\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\UserAssist\{CEBFF5CD-ACE2-4F4F-9178-9926F41749EA}\Count'
+
+#This will be encoded
+# Decode in cyberchef (ROT13)
+```
+
+* View shortcut files executed
+```
+Get-ItemProperty 'REGISTRY::HKEY_USERS\*\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\UserAssist\{F4E57C4B-2036-45F0-A9AB-443BCFE33D9F}\Count'
+```
+
+##### Windows Background Activity Moderator (BAM)
+
+* Gives the full file path of the exe that was run and the last time it was run
+* Win Service that controls activity of background applications
+* _If you see_ __C:\\__ _it was created by a user_
+* For GUI loggin only
+```
+Get-Itemproperty 'HKLM:\SYSTEM\CurrentControlSet\Services\bam\UserSettings\*' (Windows 1709 & 1803)
+
+Get-Itemproperty 'HKLM:\SYSTEM\CurrentControlSet\Services\bam\state\UserSettings\*' (Windows 1809 and newer)
+```
+##### Recycle Bin
+```
+* Can only view your own through the GUI
+* Only contains files deleted normally through the GUI using File Explorer
+
+gci 'C:\$RECYCLE.BIN' -Recurse -Verbose -Force | select *
+
+PS C:\Users\student\Desktop\SysinternalsSuite> gci 'C:\$RECYCLE.BIN' -Recurse -Verbose -Force | select *
+
+
+PSPath            : Microsoft.PowerShell.Core\FileSystem::C:\$RECYCLE.BIN\S-1-5-18
+PSParentPath      : Microsoft.PowerShell.Core\FileSystem::C:\$RECYCLE.BIN
+PSChildName       : S-1-5-18
+PSDrive           : C
+PSProvider        : Microsoft.PowerShell.Core\FileSystem
+PSIsContainer     : True
+Mode              : d--hs-
+BaseName          : S-1-5-18
+Target            : {}
+LinkType          :
+Name              : S-1-5-18
+FullName          : C:\$RECYCLE.BIN\S-1-5-18
+Parent            : $RECYCLE.BIN
+Exists            : True
+Root              : C:\
+Extension         :
+CreationTime      : 2/24/2022 1:33:23 PM
+CreationTimeUtc   : 2/24/2022 1:33:23 PM
+LastAccessTime    : 8/24/2022 1:45:25 PM
+LastAccessTimeUtc : 8/24/2022 1:45:25 PM
+LastWriteTime     : 2/24/2022 1:33:23 PM
+LastWriteTimeUtc  : 2/24/2022 1:33:23 PM
+Attributes        : Hidden, System, Directory
+
+---------------------------------------------------------------------------------------
+
+
+gci 'C:\$RECYCLE.BIN' -Recurse -Force
+
+PS C:\Users\student\Desktop\SysinternalsSuite> gci 'C:\$RECYCLE.BIN' -Recurse -Force
+
+    Directory: C:\$RECYCLE.BIN
+
+Mode                LastWriteTime         Length Name
+----                -------------         ------ ----
+d--hs-        2/24/2022   1:33 PM                S-1-5-18
+d--hs-        2/23/2022   9:59 PM                S-1-5-21-135952936-406499825-942129062-1003
+d--hs-         1/3/2019  11:37 PM                S-1-5-21-564401803-3985374949-2546733337-500
+
+    Directory: C:\$RECYCLE.BIN\S-1-5-18
+
+Mode                LastWriteTime         Length Name
+----                -------------         ------ ----
+-a-hs-        2/24/2022   1:33 PM            129 desktop.ini
+
+    Directory: C:\$RECYCLE.BIN\S-1-5-21-135952936-406499825-942129062-1003
+
+Mode                LastWriteTime         Length Name
+----                -------------         ------ ----
+-a-hs-        2/23/2022   9:59 PM            129 desktop.ini
+
+    Directory: C:\$RECYCLE.BIN\S-1-5-21-564401803-3985374949-2546733337-500
+
+Mode                LastWriteTime         Length Name
+----                -------------         ------ ----
+-a-hs-         1/3/2019  11:37 PM            129 desktop.ini
+
+
+# **Use Single Quotes**
+```
+>$R files contain content of the file  
+ $I files contain the location it was at
+ The 6 chars following the ${I,R} will match
+ i,e {$I123456 $R123456}
+
+View contents of all files in the recycling bin
+```
+Get-ChildItem 'C:\$recycle.Bin' -Force -Recurse | ForEach-Object { if (($_.Extension) -like ".txt") {if ($_.Name -like "`$R*") {Write-Host $_.Name -NoNewline ; Write-Host " --> " -ForegroundColor Green -NoNewline ; Get-Content $_.FullName } } }
+```
+
+
+##### Prefetch: Check First
+* Created by the windows operating system when an application is run from a specific location for the first time
+* Only for files that have RAM
+* Saves the last 1024 executables ran
+* Only enabled by _default_ on Client boxes
+* Keeps a copy of the entire binary 
+  * __THIS IS USEFUL AF__
+```
+# first entry in folder
+PS C:\windows\Prefetch> gci | select -first 5
+
+    Directory: C:\windows\Prefetch
+
+Mode                LastWriteTime         Length Name
+----                -------------         ------ ----
+d-----        8/11/2022   7:20 PM                ReadyBoot
+-a----        8/22/2022   7:45 PM           8129 ACCESSCHK.EXE-E5C61696.pf    <---- Dis is de file
+-a----        2/23/2022   9:51 PM         334168 AgAppLaunch.db
+-a----        8/22/2022   6:52 PM        1347977 AgCx_S2_S-1-5-21-135952936-406499825-942129062-1003.snp.db
+-a----        4/15/2022   3:57 PM          51117 AgCx_SC4.db
+
+gci -Path 'C:\Windows\Prefetch' -ErrorAction Continue | select * | select -first 5
+
+PS C:\Windows\System32> gci -Path 'C:\Windows\Prefetch' -ErrorAction Continue | select * | select -first 1
+
+PSPath            : Microsoft.PowerShell.Core\FileSystem::C:\Windows\Prefetch\ReadyBoot
+PSParentPath      : Microsoft.PowerShell.Core\FileSystem::C:\Windows\Prefetch
+PSChildName       : ReadyBoot
+PSDrive           : C
+PSProvider        : Microsoft.PowerShell.Core\FileSystem
+PSIsContainer     : True
+Theses are some notes
+Mode              : d-----
+BaseName          : ReadyBoot
+Target            : {}
+LinkType          :
+Name              : ReadyBoot
+FullName          : C:\Windows\Prefetch\ReadyBoot
+Parent            : Prefetch
+Exists            : True
+Root              : C:\
+Extension         :
+CreationTime      : 1/4/2019 2:34:53 AM
+CreationTimeUtc   : 1/4/2019 2:34:53 AM
+LastAccessTime    : 8/22/2022 8:49:39 PM
+LastAccessTimeUtc : 8/22/2022 8:49:39 PM
+LastWriteTime     : 8/11/2022 7:20:58 PM
+LastWriteTimeUtc  : 8/11/2022 7:20:58 PM
+Attributes        : Directory
+```
+##### Jump Lists
+* Allow users to “jump” or access items they have frequently or recently used quickly and easily.
+```
+gci -Recurse C:\Users\*\AppData\Roaming\Microsoft\Windows\Recent -ErrorAction Continue | select FullName, LastAccessTime
+
+-------------------------
+
+# Access  Time
+
+PS C:\> gci -Recurse C:\Users\*\AppData\Roaming\Microsoft\Windows\Recent -ErrorAction Continue | select LastAccessTime, creationtime, fullname | ft -wrap  
+
+                                                                                                              LastAccessTime
+--------                                                                                                                  --------------
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\AutomaticDestinations                                           8/24/2022 1:48:21 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\AutomaticDestinations\5f7b5f1e01b83767.automaticDestinations-ms 8/24/2022 1:48:21 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\AutomaticDestinations\9b9cdc69c1c24e2b.automaticDestinations-ms 8/24/2022 1:48:20 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\AutomaticDestinations\9d1f905ce5044aee.automaticDestinations-ms 8/24/2022 1:48:20 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\AutomaticDestinations\f01b4d95cf55d32a.automaticDestinations-ms 8/24/2022 1:48:21 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\CustomDestinations                                              8/22/2022 8:05:31 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\CustomDestinations\590aee7bdd69b59b.customDestinations-ms       8/24/2022 1:48:20 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\CustomDestinations\7e4dca80246863e3.customDestinations-ms       8/24/2022 1:48:20 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\CustomDestinations\f01b4d95cf55d32a.customDestinations-ms       8/24/2022 1:48:20 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\Hmmmm.lnk                                                       8/22/2022 7:33:27 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\It's_Here.lnk                                                   8/22/2022 7:37:23 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\Public Downloads.lnk                                            8/22/2022 7:33:27 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\The Internet.lnk                                                8/22/2022 8:05:35 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\Windows Defender Advanced Threat Protection.lnk                 8/22/2022 7:37:23 PM
+
+-------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------
+
+# Creation Time
+
+PS C:\windows\System32> gci -Recurse C:\Users\*\AppData\Roaming\Microsoft\Windows\Recent -ErrorAction Continue | select FullName, CreationTime
+
+FullName                                                                                                                  CreationTime
+--------                                                                                                                  ------------
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\AutomaticDestinations                                           2/23/2022 9:59:31 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\Automatgci 'C:\$RECYCLE.BIN' -Recurse -Force
+icDestinations\5f7b5f1e01b83767.automaticDestinations-ms 2/23/2022 9:59:55 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\AutomaticDestinations\9b9cdc69c1c24e2b.automaticDestinations-ms 8/22/2022 7:33:26 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\AutomaticDestinations\9d1f905ce5044aee.automaticDestinations-ms 8/22/2022 8:05:35 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\AutomaticDestinations\f01b4d95cf55d32a.automaticDestinations-ms 2/23/2022 9:59:31 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\CustomDestinations                                              2/23/2022 9:59:09 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\CustomDestinations\590aee7bdd69b59b.customDestinations-ms       2/23/2022 9:59:09 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\CustomDestinations\7e4dca80246863e3.customDestinations-ms       2/23/2022 9:59:31 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\CustomDestinations\f01b4d95cf55d32a.customDestinations-ms       2/23/2022 9:59:31 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\Hmmmm.lnk                                                       8/22/2022 7:33:27 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\It's_Here.lnk                                                   8/22/2022 7:37:23 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\Public Downloads.lnk                                            8/22/2022 7:33:27 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\The Internet.lnk                                                8/22/2022 8:05:35 PM
+C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\Windows Defender Advanced Threat Protection.lnk                 8/22/2022 7:37:23 PM
+```
+```
+# This contains the location it was ran from
+
+PS C:\windows\System32> gc "C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\It's_Here.lnk"
+L        À      F›       QaÓ )ØQaÓ )ØQaÓ )Ø                          Ã PàOÐ ê:i¢ +00 /C:\                   Œ 1     YTMt PROGRA~1  t     ï¾‹LË¼Ux˜.   Z              J     ù¿P r o g r a m   F i l e s   @ s h e l l 3 2 . d l l , - 2 1 7 8 1      1     WT WIF4A9~1  ˆ       ï¾ŒL¥JU™.   ©                    ¯ W i n d o w s   D e f e n d e r   A d v a n c e d   T h r e a t   P r o t e c t i o n    h 2           WT  IT'S_H~1.TXT  L    ï¾WTWT.   Às                  ¯ I t ' s _ H e r e . t x t      {            /       z      
+œæ    OS C:\Program Files\Windows Defender Advanced Threat Protection\It's_Here.txt  \ . . \ . . \ . . \ . . \ . . \ . . \ . . \ P r o g r a m   F i l e s \ W i n d o w s   D e f e n d e r   A d v a n c e d   T h r e a t   P r o t e c  i o n \ I t ' s _ H e r e . t x t < C : \ P r o g r a m   F i l e s \ W i n d o w s   D e f e n d e r   A d v a n c e d   T h r e a t   P r o t e c t i o n `      X       workstation1    ÀT¢½+õG¦Gf·Ù(YðåþÆ<T!í½-æð÷ß"     ÀT¢½+õG¦Gf·Ù(YðåþÆ<T!í½-æð÷ß"      E          9   1SPS±mD­pH§H@.¤=xŒ   h    H  [ŠS      
+```
+
+##### Recent Files
+* Registry Key that will track the last files and folders opened and is used to populate data in “Recent” menus of the Start menu
+* Overall key will track the overall order of the last 150 files or folders opened.
+
+List the Files in Recent Docs
+```
+PS C:\windows\System32> gci 'REGISTRY::HKEY_USERS\*\Software\Microsoft\Windows\CurrentVersion\Explorer\RecentDocs'
+
+
+    Hive: HKEY_USERS\S-1-5-21-135952936-406499825-942129062-1003\Software\Microsoft\Windows\CurrentVersion\Explorer
+
+
+Name                           Property
+----                           --------
+RecentDocs                     MRUListEx : {4, 0, 0, 0...}
+                               0         : {72, 0, 109, 0...}
+                               1         : {80, 0, 117, 0...}
+                               2         : {73, 0, 116, 0...}
+                               3         : {87, 0, 105, 0...}
+                               4         : {84, 0, 104, 0...}
+```
+Convert File HEX to UNICODE
+```
+PS C:\windows\System32> [System.Text.Encoding]::Unicode.GetString((gp "REGISTRY::HKEY_USERS\*\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\RecentDocs\.txt")."0")
+
+Hmmmm.txt \2     浈浭⹭湬kD      뻯    .              Hmmmm.lnk 
+```
+Convert all of a users values from HEX to UNICODE
+```
+PS C:\windows\System32> Get-Item "REGISTRY::HKEY_USERS\*\Software\Microsoft\Windows\CurrentVersion\Explorer\RecentDocs\.txt" | select -Expand property | ForEach-Object { [System.Text.Encoding]::Default.GetString((Get-ItemProperty -Path "
+REGISTRY::HKEY_USERS\*\Software\Microsoft\Windows\CurrentVersion\Explorer\RecentDocs\.txt" -Name $_).$_)}
+H m m m m . t x t   \ 2           Hmmmm.lnk D     ï¾        .                             H m m m m . l n k   
+       ÿÿÿÿ
+I t ' s _ H e r e . t x t   h 2           It's_Here.lnk L         ï¾        .                             I t ' s _ H e r e . l n k   
+```
+##### Browser Artifacts
+* Stores details for each user account
+* History will record the access to the file on the website that was accessed via a link
+
+```
+# Must be in the SysteminternalsSuite
+.\strings.exe 'C:\Users\<username>\AppData\Local\Google\Chrome\User Data\Default\History'
+```
+* Find FQDNs in Sqlite Text Files
+```
+$History = (Get-Content 'C:\users\<username>\AppData\Local\Google\Chrome\User Data\Default\History') -replace "[^a-zA-Z0-9\.\:\/]",""
+
+$History| Select-String -Pattern "(https|http):\/\/[a-zA-Z_0-9]+\.\w+[\.]?\w+" -AllMatches|foreach {$_.Matches.Groups[0].Value}| ft
+```
+##### Auditing 
+```
+auditpol /get /category:*
+
+PS C:\Users\student\Desktop\SysinternalsSuite> auditpol /get /category:*
+System audit policy
+Category/Subcategory                      Setting
+System
+  Security System Extension               No Auditing
+  System Integrity                        Success and Failure
+  IPsec Driver                            No Auditing
+  Other System Events                     Success and Failure
+  Security State Change                   Success
+Logon/Logoff
+  Logon                                   Success
+  Logoff                                  Success
+  Account Lockout                         Success
+  IPsec Main Mode                         No Auditing
+  IPsec Quick Mode                        No Auditing
+  IPsec Extended Mode                     No Auditing
+  Special Logon                           Success
+  Other Logon/Logoff Events               No Auditing
+  Network Policy Server                   Success and Failure
+  User / Device Claims                    No Auditing
+  Group Membership                        No Auditing
+.......
+....
+```
+##### Windows Event Log
+* Application: Contains events logged by applications
+* Security: Contains events such as valid/ invalid logon attempts and other events related to resource use like creating, opening, or deleting files
+* System: Contains events logged by system components, such as driver failures other system component to load during startup
+* CustomLog: Contains events logged by applications that create a custom log.
+Using a custom log enables an application to control the size of the log or attach ACLs for security purposes without affecting other applications
+
+##### View event Logs
+* Event Viewer (GUI)
+View newest 10 System Logs
+```
+PS C:\Users\student\Desktop\SysinternalsSuite> Get-EventLog -LogName System -Newest 10
+
+   Index Time          EntryType   Source                 InstanceID Message
+   ----- ----          ---------   ------                 ---------- -------
+    1187 Aug 24 14:59  Warning     Microsoft-Windows...         2004 Windows successfully diagnosed a low virtual memory condition. The following programs consumed the most virtual memory: ctfmon.exe (3684) consumed 529117184 bytes, ...
+    1186 Aug 24 14:54  Warning     Microsoft-Windows...         2004 Windows successfully diagnosed a low virtual memory condition. The following programs consumed the most virtual memory: ctfmon.exe (3684) consumed 529117184 bytes, ...
+    1185 Aug 24 12:33  Warning     Microsoft-Windows...         2004 Windows successfully diagnosed a low virtual memory condition. The following programs consumed the most virtual memory: ctfmon.exe (3684) consumed 529117184 bytes, ...
+    1184 Aug 24 12:00  Information EventLog               2147489661 The system uptime is 1097188 seconds.
+    1183 Aug 23 21:23  Warning     Microsoft-Windows...         2004 Windows successfully diagnosed a low virtual memory condition. The following programs consumed the most virtual memory: ctfmon.exe (3684) consumed 529117184 bytes, ...
+    1182 Aug 23 21:14  Warning     Microsoft-Windows...         2004 Windows successfully diagnosed a low virtual memory condition. The following programs consumed the most virtual memory: ctfmon.exe (3684) consumed 529117184 bytes, ...
+    1181 Aug 23 19:39  Error       Microsoft-Windows...           20 Installation Failure: Windows failed to install the following update with error 0x80070643: Security Intelligence Update for Microsoft Defender Antivirus - KB226760...
+    1180 Aug 23 19:39  Information Application Popup              26 CriticalAppShutdownCleanupTimeout
+    1179 Aug 23 19:38  Warning     Microsoft-Windows...         2004 Windows successfully diagnosed a low virtual memory condition. The following programs consumed the most virtual memory: ctfmon.exe (3684) consumed 529117184 bytes, ...
+    1178 Aug 23 19:38  Information Microsoft-Windows...           43 Installation Started: Windows has started installing the following update: Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.373....
+```
+Check for message "Remote"
+
+`Get-EventLog -LogName System -Message "Remote" | ft -wrap`  
+
+View the entire message field  
+`Get-Eventlog -LogName Security | ft -wrap`  
+
+Search logs with multiple criteria  
+`get-winevent -FilterHashtable @{logname="security";id="4624"} | select -first 5 | ft -wrap`  
+
+##### Powershell Logging
+
+###### Transcript
+* Allows the capture of the input and output of Windows PowerShell commands into text-based transcripts.  
+`Start-Transcript`  
+* View Powershell console History
+`Get-History`  
+* View entire powershell History
+`Get-Content "C:\users\$env:username\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt"`  
+
+###### Script Block Logging
+* Logging is enabled through the Turn on PowerShell Script Block Logging Group Policy setting in  
+  * Administrative Templates → Windows Components → Windows PowerShell  
+* Turn on script block logging via the Registry
+  * reg.exe add HKLM\SOFTWARE\Wow6432Node\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging\ /v EnableScriptBlockLogging /t REG_DWORD /d 1 /f  
+
+Find Last access time of a file
+`$(Get-item <abs_path>).LastAccessTime`
+
+
+
+-------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------
+
+### Help Tools
+
+##### explainbash.com  
+
+##### man pages
+
+```
+#> man bash
+#  prints out the bash manual
+#  g top
+#  G bottom
+#  / search for a patterns
+#    n next instance of match
+```
+
+`# curl cheat.sh/grep`
+
+### shortcuts
+* up arrow
+* ctrl-p up in history
+* ctrl-n down in history
+* ctrl-l clears the terminal
+* alt-b back by a word
+* alt-f forward a word
+* ctrl-u delete everything left of the cursor
+* history > ! <#> //will rerun the command with index <#>
+
+### common commands
+
+***
+#### touch
+create a file
+```
+touch <-m>    
+-m (only modification time)
+touch <filename1> -r <filename2> 
+touch -t CCYYMMDDHHMM.SS
+```
+#### file <filename>
+attempts to read a file
+#### ls -la
+shows files with timestamp
+#### manipulate the timestamp
+#### cp
+#### mv
+#### rm *.txt
+will remove any .txt files
+ 
+##### ls
+* blue: Dir 
+* green: executable
+##### ls -s <file> <file2>
+creates a symbolic link from file2 to file1
+##### ln file hardlink
+creates a hardlink to file: if orig file is removed the hardlink will remain  
+must be on the same hard drive
+```
+touch <-m>    
+-m (only modification time)
+touch <filename1> -r <filename2> 
+touch -t CCYYMMDDHHMM.SS
+```
+#### filepaths
+* ~/ represents your home directory
+* . current dir
+* .. back one dir
+* pwd print current location in the file path
+* whoami current user
+* hostname
+
+#### Variables
+* declaration $
+* ls -lisa shows hidden files
+* $/HOME/bash.rc contains users system startup variables/ alias
+#### Locating on our system
+* locate <key>
+* whereis man > returns a filepath
+* find -name bad.txt > will be specific (can use *)
+* find -iname > case insensitive
+* find / -iname > will start at root
+* find -type f -name bad* > will search for a file
+* find -mtime 2 > modified within two days
+* find -empty > shows empty files in current dir
+* find -executable
+* find / -maxdepth 2 (current + 1 subdir)
+
+#### print
+~/BASH$ find ./ -iname "*.txt" -printf "%i %file\n"  
+    %i inode  
+    %f filename
+
+#### exec
+`find ./ -type -d ls -l {};`  
+
+`touch ./find/{1..10}.txt`  
+> creates 1.txt - 9.txt  
+
+`find ./find/ ~ -name *.txt`  
+ find everything specifying what you dont want  
+
+> returns everything that is not a .txt  
+
+#### grep
+searches for a pattern and returns it
+
+#### egrep
+> -i ignore case
+
+cat /etc/passwd | egrep -o "/home/.*"
+> prints the match and anything that follows
+
+cat /etc/passwd | egrep ":[0-9]{5}"
+> includes 5 digits
+-C<#> print lines above and below
+-A after
+-Before
+
+#### cut
+tail /etc/psswd | cut -d: 01
+
+#### & 
+sends to the background
+
+#### ; 
+> Equivalent of hitting enter and putting the code on the next line  
+
+#### / 
+> continue text on the same line
+
+#### || 
+> or
+
+#### && 
+> and
+#### >
+> replace
+#### >> 
+> append
+
+
+### File Streams
+```
+1> std in  
+2> std out  
+3> std err  
+```
+### awk
+`awk '{print NR,$0}' coffee.txt`  
+prints contents with line numbers  
+`awk 'NR==3, NR==8 {print NR,$0}` coffee.txt  # prints lines 3-8`
+
+`tail /etc/passwd | awk -F: '{print $NF}' > NF prints the last field, -F: delimits by :`  
+
+`ls -l  $HOME/CUT/ | cut -d' ' -f6-9 | awk -F' ' 'BEGIN {OFS=":"}{print $1,$2,$3}'`  
+> break it apart and join back together  
+
+`sort -o ~/bevSorted ~/beverages`  
+> output to bevSorted   
+
+### sed
+```
+sed 's/tes/coffee` tea.txt # first instance of tea on each line
+sed 's/tes/coffee/g` tea.txt # every instance of tea on each line  
+sed '5 s/tes/coffee` tea.txt # first instance of tea on line 5
+sed '5 s/tes/coffee/g` tea.txt # every instance of tea on line 5 
+```
+### sort
+```
+sort ~/beverages | uniq -c 
+      1 1sprite
+      1 7wine
+      1 Aaa
+      1 Bbb
+      1 Jameson 
+      1 Maker's Mark
+      1 a
+      1 aA 
+      1 aAA
+      2 aaAA
+      1 apple juice
+      1 bB
+      3 bb
+      1 booze
+      1 latte
+      1 milk
+      1 orange juice
+      1 soda
+      1 tea
+      1 water
+
+```
+```
+sort ~/beverages | uniq -c | sort -nr
+      3 bb
+      2 aaAA
+      1 water
+      1 tea
+      1 soda
+      1 orange juice
+      1 milk
+      1 latte
+      1 booze
+      1 bB
+      1 apple juice
+      1 aAA
+      1 aA 
+      1 a
+      1 Maker's Mark
+      1 Jameson 
+      1 Bbb
+      1 Aaa
+      1 7wine
+      1 1sprite
+```
+```
+sort ~/beverages | uniq -i -c | sort -nr
+      4 bB
+      2 aaAA
+      1 water
+      1 tea
+      1 soda
+      1 orange juice
+      1 milk
+      1 latte
+      1 booze
+      1 apple juice
+      1 aAA
+      1 aA 
+      1 a
+      1 Maker's Mark
+      1 Jameson 
+      1 Bbb
+      1 Aaa
+      1 7wine
+      1 1sprite
+
+```
+```
+computer=$(hostname)
+echo $hostname
+```
+### Control Structures
+```
+#!/bin/bash
+function test_shadow () {
+if [ -e /etc/shadow ];
+then
+    echo "shadow exists"
+else
+    echo "shadow isnt found"
+fi
+}
+test_shadow
+
+> shadow exists
+```
+
+### Variables
+```
+var_a = " Hello World"
+echo $var_a
+>Hello World
+```
+Number of arguements passed: $#
+Script name is: $0
+2nd arguement passed: $2
+Arguements passed to the script are: $*
+Exit status of the last command that executed sucessfully:
+
+```
+#!/bin/bash 
+# This is a basic function
+
+function f1 {
+    echo Hello I\'m, funciton 1
+    echo Bye!
+}
+
+function f2 { echo Hello I\'m function 2; echo Bye! Bye!; }
+f3 () {
+    echo Hello I\'m funtion 3
+    echo Bye!!!
+}
+f4 () { echo Hello I\'m function 4; echo Bye!! Bye!!; }
+
+f1
+f2
+f3
+f4
+
+>Hello I'm, function 1
+>Bye!
+>Hello I'm function 2
+>Bye! Bye!
+>Hello I'm function 3
+>Bye!!!
+>Hello I'm function 4
+>Bye!! Bye!!
+
+```
+#### useful things and stuff
+```
+#PID of the shell
+echo $$
+# Name of the script
+echo $0
+
+if [[ $# -lt 3 ]]; then 
+echo "usage: bash $0 arg1 arg2 arg3";
+else
+echo $1, $2, $3;
+fi
+```
+#### Loops
+##### While
+
+```
+while [ condition ]  
+do  
+    commands
+done
+```
+##### For
+```
+for var in <list>
+do
+    commands
+done
+```
+##### until
+```
+until <test
+do 
+    commands
+done
+```
+##### Examples
+```
+counter = 1
+while [[ $counter -le 10 ]]
+do 
+    echo $counter
+    counter=`expr $counter + 1`
+done
+
+>1
+ 2
+ 3
+ 4
+ ...
+ 10
+```
+```
+names='Mike Lola Kim Dug Sherrly Vince Deez'
+for name in $names
+do
+    echo $name
+done
+echo All Done
+```
+```
+for value in {1..20}
+do 
+    echo $value
+done
+
+> 1
+  2
+  ...
+  20
+```
+#### Select
+```
+select var in <lists>
+do
+    commands
+done
+```
+```
+names='Nicki Jamie Rollie Rotty Nkenesliw Sam Folkawrr'
+select name in $names
+do
+    if [[ $name == 'Quit' ]]
+    then 
+        break
+    fi
+    echo Hello $name
+done
+echo Bye quitter
+
+> 1) Nicki      3) Rollie	    5) Nkenesliw  7) Folkawrr
+  2) Jamie      4) Rotty	    6) Sam
+  #? 
+2
+> Hello Jamie
+```
+
+```
+
+-----------------------------------------------------------------------------------------
+Logging
+-----------------------------------------------------------------------------------------
+
+## Log Types
+
+### syslog
+#### Authentication
+`/var/log/auth.log` - Authentication related events  
+
+`/var/run/utmp` - Users currently logged in  
+
+`/var/log/wtmp` - History file for utmp  
+
+`/var/log/btmp` - Failed login attempts
+
+Check these files with `last -f`  
+> Need `sudo` for `/var/log/btmp`
+
+```
+garviel@terra:~$ last -f /var/run/utmp 
+garviel  pts/1        10.10.0.2        Wed Aug 17 17:33   still logged in 
+garviel  pts/0        10.10.0.2        Thu Aug 25 12:33   still logged in 
+reboot   system boot  4.15.0-191-gener Thu Aug 11 20:14   still running   
+
+utmp begins Thu Aug 11 20:14:21 2022
+```
+```
+garviel@terra:~$ last -f /var/log/wtmp                                                                                                                                                                             
+garviel  pts/0        10.10.0.2        Thu Aug 25 12:33   still logged in 
+garviel  pts/3        10.10.0.2        Tue Aug 23 20:02 - 17:52  (21:49)
+garviel  pts/3        10.10.0.2        Tue Aug 23 20:00 - 20:01  (00:01)
+garviel  pts/2        10.10.0.2        Fri Aug 19 18:51 - 19:14 (5+00:23)
+garviel  pts/1        10.10.0.2        Wed Aug 17 17:33   still logged in
+garviel  pts/0        10.10.0.3        Wed Aug 17 17:30 - 12:28 (7+18:57)
+reboot   system boot  4.15.0-191-gener Thu Aug 11 20:14   still running
+reboot   system boot  4.15.0-191-gener Thu Aug 11 19:13 - 20:14  (01:00)
+reboot   system boot  4.15.0-88-generi Thu Aug 11 14:32 - 20:14  (05:41)
+root     tty1                          Mon Apr 18 14:40 - 14:40  (00:00)
+reboot   system boot  4.15.0-88-generi Mon Apr 18 14:38 - 20:14 (115+05:35)
+reboot   system boot  4.15.0-88-generi Mon Feb 28 19:17 - 19:17  (00:00)
+root     tty1                          Mon Feb 28 19:05 - 19:14  (00:09)
+garviel  tty1                          Mon Feb 28 19:05 - 19:05  (00:00)
+reboot   system boot  4.15.0-88-generi Mon Feb 28 19:02 - 19:16  (00:13)
+
+wtmp begins Mon Feb 28 19:02:57 2022
+```
+
+#### Application
+* Apache: Web Server
+* apt: Package Manager
+* /var/log/mysql.log
+
+#### System 
+* `/var/log/messages` - Legacy catch all  
+* `/var/log/syslog` -Ubuntu/Debian Catch all
+* `dmesg` = Device Messenger (queries /proc/kmsg)
+  * Kernel Ring buffer - Never fills
+  * First logs generated by the system
+
+```
+garviel@terra:~$ dmesg
+
+[    0.000000] x86/fpu: Enabled xstate features 0x7, context size is 832 bytes, using 'compacted' format.
+[    0.000000] e820: BIOS-provided physical RAM map:
+[    0.000000] BIOS-e820: [mem 0x0000000000000000-0x000000000009fbff] usable
+[    0.000000] BIOS-e820: [mem 0x000000000009fc00-0x000000000009ffff] reserved
+[    0.000000] BIOS-e820: [mem 0x00000000000f0000-0x00000000000fffff] reserved
+[    0.000000] BIOS-e820: [mem 0x0000000000100000-0x00000000bffdcfff] usable
+[    0.000000] BIOS-e820: [mem 0x00000000bffdd000-0x00000000bfffffff] reserved
+[    0.000000] BIOS-e820: [mem 0x00000000feffc000-0x00000000feffffff] reserved
+[    0.000000] BIOS-e820: [mem 0x00000000fffc0000-0x00000000ffffffff] reserved
+[    0.000000] BIOS-e820: [mem 0x0000000100000000-0x000000013fffffff] usable
+[    0.000000] NX (Execute Disable) protection: active
+[    0.000000] SMBIOS 2.8 present.
+[    0.000000] DMI: OpenStack Foundation OpenStack Nova, BIOS 1.13.0-1ubuntu1.1 04/01/2014
+[    0.000000] Hypervisor detected: KVM
+[    0.000000] e820: update [mem 0x00000000-0x00000fff] usable ==> reserved
+[    0.000000] e820: remove [mem 0x000a0000-0x000fffff] usable
+[    0.000000] e820: last_pfn = 0x140000 max_arch_pfn = 0x400000000
+[    0.000000] MTRR default type: write-back
+```
+* Location: `/var/log`  
+* Config file: `/etc/rsyslog.conf`  
+* Service: `/usr/sbin/rsyslogd`  
+
+##### Logging Daemon
+* `/usr/sbin/rsyslogd`
+  * User space daemon - Reads messages written to /dev/log and formats and stores them based on /etc/rsyslog.conf rules.  
+
+###### Config File
+* `/ect/rsyslog.conf`
+  * Log entries follow syslog standard facility.severity
+    * facility = what program, or part of system, log is from
+    * severity = urgency
+
+> @@<IP>:514 <-- TCP Port for remote logging
+  @<IP>:514 <-- UDP port for remote logging
+  !<level> <-- Everything but <level>
+  `*.info` <-- Will include every level above (So Info(0) will go up to level 0)
+  `*.=info` <-- Will __ONLY__ include _info_
+Facility Codes
+```
+0   kernel messages
+1   user-level messages
+2   mail system
+3   system daemons
+4   security/authorization messages
+5   messages generated internally by syslogd
+6   line printer subsystem
+7   network news subsystem
+8   UUCP subsystem
+9   clock daemon
+10  security/authorization messages
+11  FTP daemon
+12  NTP subsystem13|log audit
+...TRIMMED
+```
+Severity Codes
+```
+0  emerg, panic:  Emergency: system is unusable
+1  alert:         Action must be taken immediately
+2  crit:          Critical conditions
+3  err, error:    Error conditions
+4  warn, warning: Warning conditions
+5  notice:        Normal but significant condition
+6  info:          Informational messages
+7  Debug:         Debug-level messages
+```
+### journald
+
+`journalctl`  
+```
+garviel@terra:~$ journalctl                                                                                                                                                                                        
+Hint: You are currently not seeing messages from other users and the system. 
+      Users in groups 'adm', 'systemd-journal' can see all messages.
+      Pass -q to turn off this notice.
+-- Logs begin at Mon 2022-02-28 19:05:02 UTC, end at Thu 2022-08-25 12:28:32 UTC. --
+Feb 28 19:05:02 terra systemd[2714]: Listening on REST API socket for snapd user session agent.
+Feb 28 19:05:02 terra systemd[2714]: Reached target Paths.
+Feb 28 19:05:02 terra systemd[2714]: Listening on GnuPG cryptographic agent and passphrase cache (restricted).
+Feb 28 19:05:02 terra systemd[2714]: Listening on GnuPG cryptographic agent and passphrase cache.
+Feb 28 19:05:02 terra systemd[2714]: Listening on GnuPG cryptographic agent and passphrase cache (access for web browsers). 
+Feb 28 19:05:02 terra systemd[2714]: Listening on GnuPG cryptographic agent (ssh-agent emulation).
+Feb 28 19:05:02 terra systemd[2714]: Listening on GnuPG network certificate management daemon.
+Feb 28 19:05:02 terra systemd[2714]: Reached target Sockets.
+Feb 28 19:05:02 terra systemd[2714]: Reached target Timers.
+Feb 28 19:05:02 terra systemd[2714]: Reached target Basic System.
+Feb 28 19:05:02 terra systemd[2714]: Reached target Default.
+Feb 28 19:05:02 terra systemd[2714]: Startup finished in 43ms.
+Feb 28 19:05:11 terra systemd[2714]: Stopped target Default.
+```
+#####  journalctl options
+* `-e` <-- Recent  
+* `--list-boots` <-- List boots on the system  
+* `--b` <-- For that boot session  
+* `journalctl -u ssh.service` <-- For ssh service  
+
+
+#### Log Rotation
+```
+bombadil@minas-tirith:~$ cat /etc/logrotate.conf  # see "man logrotate" for details# rotate log files weekly
+weekly# keep 4 weeks worth of backlogs
+rotate 4# create new (empty) log files after rotating old ones       create
+# uncomment this if you want your log files compressed       #compress# packages drop log rotation information into this directory include /etc/logrotate.d
+# no packages own wtmp, or btmp -- we'll rotate them here    /var/log/wtmp {    missingok
+    monthly
+    create 0664 root utmp
+    rotate 1
+}
+
+/var/log/btmp {
+    missingok
+    monthly
+    create 0660 root utmp
+    rotate 1
+}
+
+# system-specific logs may be configured here
+
+```
+#### Log Enumeration / Management
+* Best Practices
+    * Meaningful Naming Schema
+    * Separate logs logically and by precedence
+    * Sync time across network
+    * Control log access
+
+* Utilize cron jobs / scripts
+    * logrotate
+    * /etc/logrotate.conf
+    * How large to let files get. How long to keep them.
+
+#### Useful Logging Commands
+* `tail -f` - Continuously show end of file  
+* `less /var/log/syslog` - View Log in page viewer  
+* `logger` - Send a user generated message to system Log i.e. Starting Update  
+* `> /var/log/messages` - Wipes Logs  
+* `last -f /var/log{wtmp,btmp}` - Needed to view data files  
+
+# Get a child and its parent
+xpath -e '//@<child>/ancestor::host/address/@<parent> | //@<child>'  <filepath>
+
+
+---------------------------------------------------------------------------------------
+Boot Process
+---------------------------------------------------------------------------------------
+
+#### Boot Process
+Big Mike Got Killed In Russia
+
+BIOS -Basic Input Output System  
+MBR -Master Boot Record  
+GRUB -Grand Unified Bootloader  
+Kernel   
+Init (SysV or SystemD)  
+Runlevels   
+
+* The machines BIOS or boot firmware loads and runs a boot loader
+* The boot loader ("Grub" located )
+
+### Notes
+```
+         Boot Process 
+       Computer Turned on
+   BIOS                UEFI
+   MBR                 GPT
+   GRUB                Grub.efi
+        Linux Kernel
+            Init
+  SysV Init        Systemd Init
+/sbin/init       /lib/systemd/systemd
+     Bring System to 
+        login state
+```
+#### Systemd
+
+
+
+#### SystemV (System 5)
+* The machine's __BIOS__ or boot firmware loads and runs a boot loader
+* The boot loader ("Grub" located in MBR) finds the __kernel__ image on   
+  disk, loads it onto memory, and starts it
+
+`lsblk` 
+>Tells us what disks are in the system and if/where they are mounted
+ (/dev/sda in example below)
+```
+student@lin-ops:~$ lsblk
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda      8:0    0   64G  0 disk 
+└─sda1   8:1    0   64G  0 part /
+sr0     11:0    1  506K  0 rom  
+```
+
+`df -h` 
+>Locate where your disks are located 
+```
+student@lin-ops:~$ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+udev            2.9G     0  2.9G   0% /dev
+tmpfs           597M  976K  596M   1% /run
+/dev/sda1        61G   40G   18G  70% /
+tmpfs           3.0G     0  3.0G   0% /dev/shm
+tmpfs           5.0M     0  5.0M   0% /run/lock
+tmpfs           3.0G     0  3.0G   0% /sys/fs/cgroup
+tmpfs           597M   28K  596M   1% /run/user/114
+tmpfs           597M  4.0K  597M   1% /run/user/1001
+
+```
+
+`sudo xxd -l512` -g 1/dev/vda (/sda on our opstation)
+>hexdump of MBR file
+
+_Note:_ __NoOP 0x90__
+
+`sudo parted -l`
+Check if BIOS or UEFI
+
+```
+student@lin-ops:~$ sudo parted -l
+Model: QEMU QEMU HARDDISK (scsi)
+Disk /dev/sda: 68.7GB
+Sector size (logical/physical): 512B/512B
+Partition Table: msdos                          <----------------- _mdos = BIOS gpt = UEFI_
+Disk Flags: 
+
+Number  Start   End     Size    Type     File system  Flags
+ 1      1049kB  68.7GB  68.7GB  primary  ext4         boot
+
+
+Warning: Unable to open /dev/sr0 read-write (Read-only file system).  /dev/sr0
+has been opened read-only.
+Error: /dev/sr0: unrecognised disk label
+Model: QEMU QEMU DVD-ROM (scsi)                                           
+Disk /dev/sr0: 518kB
+Sector size (logical/physical): 2048B/2048B
+Partition Table: unknown
+Disk Flags: 
+```
+_Note:_ Make a copy of your MBR
+```
+sudo dd if=<drive> of=<copy_name> bs=1 count=<count>
+
+Ex for MBR: sudo dd if=/dev/sda of=MBRcopy bs=1 count=512
+
+student@lin-ops:~$ sudo dd if=/dev/sda of=MBRcopy bs=1 count=512
+512+0 records in
+512+0 records out
+512 bytes copied, 0.00152596 s, 336 kB/s
+
+student@lin-ops:~$ file MBRcopy 
+MBRcopy: DOS/MBR boot sector
+
+# Read it with xxd command
+student@lin-ops:~$ xxd MBRcopy 
+00000000: eb63 9000 0000 0000 0000 0000 0000 0000  .c..............
+00000010: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+00000020: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+00000030: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+00000040: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+00000050: 0000 0000 0000 0000 0000 0080 0100 0000  ................
+00000060: 0000 0000 fffa 9090 f6c2 8074 05f6 c270  ...........t...p
+00000070: 7402 b280 ea79 7c00 0031 c08e d88e d0bc  t....y|..1......
+```
+>This command makes a byte for byte copy
+
+#### GRUB
+__Grand Unified Bootloader__
+* Configuration file `/boot/grub/grub.cfg`   
+* GRUB menu allows your to pick which OS you want to load   
+  * Can use this to get into single user mode on older systems
+
+`cat /boot/grub/grub.cfg`
+>View the Grub files configuration
+
+#### Kernel 
+* Manages the interactions between the OS and the hardware 
+
+* Supports Modules   
+`lsmod` 
+>lists Kernel Mmodules
+
+```
+student@lin-ops:~$ lsmod
+Module                  Size  Used by
+tcp_diag               16384  0
+inet_diag              24576  1 tcp_diag
+binfmt_misc            20480  1
+kvm_amd                86016  0
+kvm                   610304  1 kvm_amd
+irqbypass              16384  1 kvm
+joydev                 24576  0
+input_leds             16384  0
+mac_hid                16384  0
+serio_raw              16384  0
+qemu_fw_cfg            16384  0
+```
+* Mounts the _root partition_ during boot  
+* Hardcoded to Execute `/sbin/init`  
+* Process 0
+  * Makes a Daemon `kthreadd` PID 2
+`ls -l /sbin/init`  <--- If there is a symboic link to systemd
+```
+student@lin-ops:~$ ls -l /sbin/init 
+lrwxrwxrwx 1 root root 20 Nov 15  2019 /sbin/init -> /lib/systemd/systemd
+```
+`ps -p 1` <--- check if sysv or systemd
+```
+student@lin-ops:~$ ps -p 1
+  PID TTY          TIME CMD
+    1 ?        00:00:22 systemd
+```
+### System 5
+#### Init
+Starts processes and services
+* __All__ processes will be a child process of Init
+
+##### SysV Init
+* Run levels
+* Basic commands
+* Loads in order
+
+##### SysD Init
+* Target Units
+
+`cat /etc/inittab`
+>check systems init config (only on a Sys5 dinosaur __Minas Tirith__)
+* /etc/inet.d  
+  * S and K files (S: Start K: Kill)
+
+ ###### Run Levels
+```
+0 Halt
+1 Single User (root)  *I got the Power*   
+2 Multi-user No Net  
+3 Multi-User Net  
+4 Multi-User for custom configs  
+5 Multi-User Net & GUI  
+6 Restart
+```
+Check what the system will do in Multi-User Net (3)
+```
+student@lin-ops:~$ ls -l /etc/rc3.d
+total 0
+lrwxrwxrwx 1 root root 15 Jan 31  2020 S01acpid -> ../init.d/acpid
+lrwxrwxrwx 1 root root 17 Feb  4  2020 S01anacron -> ../init.d/anacron
+lrwxrwxrwx 1 root root 16 Jan 31  2020 S01apport -> ../init.d/apport
+lrwxrwxrwx 1 root root 13 Jan 31  2020 S01atd -> ../init.d/atd
+lrwxrwxrwx 1 root root 16 Dec 15  2021 S01auditd -> ../init.d/auditd
+lrwxrwxrwx 1 root root 26 Jan 31  2020 S01console-setup.sh -> ../init.d/console-setup.sh
+lrwxrwxrwx 1 root root 14 Jan 31  2020 S01cron -> ../init.d/cron
+lrwxrwxrwx 1 root root 14 Jan 31  2020 S01dbus -> ../init.d/dbus
+lrwxrwxrwx 1 root root 14 Feb  4  2020 S01gdm3 -> ../init.d/gdm3
+```
+Check what the System would do in single user mode (1)
+```
+student@lin-ops:~$ ls -l /etc/rc1.d
+total 0
+lrwxrwxrwx 1 root root 20 Feb  4  2020 K01alsa-utils -> ../init.d/alsa-utils
+lrwxrwxrwx 1 root root 13 Jan 31  2020 K01atd -> ../init.d/atd
+lrwxrwxrwx 1 root root 16 Dec 15  2021 K01auditd -> ../init.d/auditd
+lrwxrwxrwx 1 root root 18 Jan 31  2020 K01ebtables -> ../init.d/ebtables
+lrwxrwxrwx 1 root root 14 Feb  4  2020 K01gdm3 -> ../init.d/gdm3
+lrwxrwxrwx 1 root root 20 Jan 31  2020 K01irqbalance -> ../init.d/irqbalance
+
+```
+### SystemD
+
+* Loads system in parallel and from binaries (faster and more secure)
+
+#### Default Target
+```
+student@lin-ops:~$ ls -lisa /lib/systemd/system/default.target 
+8499 0 lrwxrwxrwx 1 root root 16 Nov 15  2019 /lib/systemd/system/default.target -> graphical.target
+```
+```
+Run Level       Target
+0
+1
+2
+3
+4
+5
+6
+```
+Check the default target settings 
+```
+student@lin-ops:~$ cat /lib/systemd/system/default.target | tail -n 8
+[Unit]
+Description=Graphical Interface
+Documentation=man:systemd.special(7)
+Requires=multi-user.target
+Wants=display-manager.service
+Conflicts=rescue.service rescue.target
+After=multi-user.target rescue.service rescue.target display-manager.service
+AllowIsolate=yes
+```
+`/etc/systemd/system` <--- User created services   
+`/lib/systemd/system` <--- Created by package maintainers
+`/user/lib/systemd/system  ^^^                        ^^^
+
+`systemctl` 
+>Manage Systemd
+```
+student@lin-ops:~$ systemctl list-dependencies graphical.target
+graphical.target
+● ├─accounts-daemon.service                 <---- Wants (.service)
+● ├─apport.service
+● ├─gdm.service
+● ├─grub-common.service
+● ├─openbsd-inetd.service
+● ├─proftpd.service
+● ├─qemu-guest-agent.service
+● ├─systemd-update-utmp-runlevel.service
+● ├─udisks2.service
+● ├─ureadahead.service
+● ├─xinetd.service
+● └─multi-user.target                       <---- Needs (Because its .target)
+●   ├─anacron.service
+●   ├─apport.service
+```
+Get the wants
+```
+student@lin-ops:~$ systemctl show -p Wants list-dependencies graphical.target
+Wants=
+
+Wants=proftpd.service openbsd-inetd.service qemu-guest-agent.service xinetd.service udisks2.service urea
+```
+View Unit files (Unit: Item that can be refferenced)
+```
+student@lin-ops:~$ systemctl list-unit-files 
+UNIT FILE                                  STATE          
+proc-sys-fs-binfmt_misc.automount          static         
+-.mount                                    generated      
+dev-hugepages.mount                        static         
+dev-mqueue.mount                           static         
+proc-sys-fs-binfmt_misc.mount              static         
+sys-fs-fuse-connections.mount              static         
+sys-kernel-config.mount                    static         
+sys-kernel-debug.mount                     static         
+acpid.path                                 enabled        
+apport-autoreport.path                     enabled        
+systemd-ask-password-console.path          static         
+systemd-ask-password-plymouth.path         static         
+systemd-ask-password-wall.path             static         
+```
+Use systemctl to locate and Enumerate a Unit
+```
+student@lin-ops:~$ systemctl cat graphical.target 
+# /lib/systemd/system/graphical.target
+#  SPDX-License-Identifier: LGPL-2.1+
+#
+#  This file is part of systemd.
+#
+#  systemd is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU Lesser General Public License as published by
+#  the Free Software Foundation; either version 2.1 of the License, or
+#  (at your option) any later version.
+
+[Unit]
+Description=Graphical Interface
+Documentation=man:systemd.special(7)
+Requires=multi-user.target
+Wants=display-manager.service
+Conflicts=rescue.service rescue.target
+After=multi-user.target rescue.service rescue.target display-manager.service
+AllowIsolate=yes
+```
+#### /etc/environment
+* Global/System wide
+* Loaded at boot
+
+#### /etc/profiles
+* Used for interactive login shells (ssh into the system and authenticated)
+* .profile for individual user
+* Loaded at login
+* System wide
+* Customize the system 
+
+#### /etc/bashrc
+* Used for interactive non-login shells (ctrl-alt-t)
+* System wide
+* Customizes the system
+* .bashrc for user
+
+Locate First Partition
+```
+dd if=<infile> of=<outfile> bs=1 count=16 skip=446
+```
+
+
+
+------------------------------------------------------------------------------------------
+Linux Proc Validity
+------------------------------------------------------------------------------------------
+Process: A running application
+
+#### View Processes
+```
+#snapshot of processes
+ps -elf 
+
+student@lin-ops:~$ ps -elf
+F S UID        PID  PPID  C PRI  NI ADDR SZ WCHAN  STIME TTY          TIME CMD
+4 S root         1     0  0  80   0 - 56403 -      Jul25 ?        00:00:27 /sbin/init
+1 S root         2     0  0  80   0 -     0 -      Jul25 ?        00:00:00 [kthreadd]
+1 I root         4     2  0  60 -20 -     0 -      Jul25 ?        00:00:00 [kworker/0:0H]
+1 I root         6     2  0  60 -20 -     0 -      Jul25 ?        00:00:00 [mm_percpu_wq]
+1 S root         7     2  0  80   0 -     0 -      Jul25 ?        00:00:00 [ksoftirqd/0]
+1 I root         8     2  0  80   0 -     0 -      Jul25 ?        00:00:47 [rcu_sched]
+1 I root         9     2  0  80   0 -     0 -      Jul25 ?        00:00:00 [rcu_bh]
+1 S root        10     2  0 -40   - -     0 -      Jul25 ?        00:00:05 [migration/0]
+5 S root        11     2  0 -40   - -     0 -      Jul25 ?        00:00:07 [watchdog/0]
+1 S root        12     2  0  80   0 -     0 -      Jul25 ?        00:00:00 [cpuhp/0]
+1 S root        13     2  0  80   0 -     0 -      Jul25 ?        00:00:00 [cpuhp/1]
+
+
+
+
+#live display of processes
+top
+
+student@lin-ops:~$ top
+
+top - 12:38:57 up 28 days, 19:26,  1 user,  load average: 0.00, 0.00, 0.00
+Tasks: 174 total,   1 running, 123 sleeping,   0 stopped,   0 zombie
+%Cpu(s):  0.3 us,  0.2 sy,  0.0 ni, 99.5 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+KiB Mem :  6103212 total,  2519560 free,   540236 used,  3043416 buff/cache
+KiB Swap:        0 total,        0 free,        0 used.  5264752 avail Mem 
+
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND                             
+12986 student   20   0  693076  52320  26116 S   1.7  0.9   0:30.72 terminator                          
+12985 student   20   0  108312   3748   2396 S   1.0  0.1   3:47.93 sshd                                
+ 1081 root      20   0  301912   5456   4372 S   0.3  0.1   0:45.09 accounts-daemon                     
+21030 student   20   0   44552   4020   3368 R   0.3  0.1   0:00.02 top                                 
+    1 root      20   0  225612   6564   3900 S   0.0  0.1   0:27.52 systemd                             
+    2 root      20   0       0      0      0 S   0.0  0.0   0:00.24 kthreadd                            
+    4 root       0 -20       0      0      0 I   0.0  0.0   0:00.00 kworker/0:0H                        
+    6 root       0 -20       0      0      0 I   0.0  0.0   0:00.00 mm_percpu_wq                        
+    7 root      20   0       0      0      0 S   0.0  0.0   0:00.73 ksoftirqd/0                         
+    8 root      20   0       0      0      0 I   0.0  0.0   0:47.90 rcu_sched      
+```
+> In top; press f too add fields, get hierarchical view using shift + v
+
+#### Notable PIDs
+* PID 1: init/ systemd
+* PID 2: kthreadd
+
+
+#### PS command
+* -N 
+> Not option
+
+* -- forest
+> Find the parents
+```
+student@lin-ops:~$ ps -Nlf --ppid 2 --forest
+0 S gdm       1857  1587  0  80   0 - 83555 -      Jul25 tty1     00:00:00              \_ /usr/lib/gnom
+0 S gdm       1859  1587  0  80   0 - 211644 -     Jul25 tty1     00:00:00              \_ /usr/lib/gnom
+4 S root      1370     1  0  80   0 - 18077 -      Jul25 ?        00:00:00 /usr/sbin/sshd -D
+4 S root     10332  1370  0  80   0 - 26424 -      Aug15 ?        00:00:00  \_ sshd: student [priv]
+5 S student  10425 10332  0  80   0 - 27173 -      Aug15 ?        00:02:54  |   \_ sshd: student@pts/0
+0 S student  10426 10425  0  80   0 -  5815 wait   Aug15 pts/0    00:00:00  |       \_ -bash
+0 S student  10440 10426  0  80   0 - 172686 poll_s Aug15 pts/0   00:00:06  |           \_ /usr/bin/pyth
+0 S student  10459 10440  0  80   0 -  5787 wait   Aug15 pts/1    00:00:00  |               \_ /bin/bash
+```
+View a certain number (8) of lines before a process
+```
+student@lin-ops:~$ ps -Nlf --ppid 2 --forest | grep -B 8 ps
+0 S student  10677 10459  0  80   0 - 67451 futex_ Aug15 pts/1    00:03:48  |               |   \_ xfreerdp /u:student /v:10.50.39.104 /dynamic-resolution +glyph-cache +clipboard
+0 S student  10467 10440  0  80   0 -  5780 poll_s Aug15 pts/2    00:00:00  |               \_ /bin/bash
+0 S student  10475 10440  0  80   0 -  5780 poll_s Aug15 pts/3    00:00:00  |               \_ /bin/bash
+0 S student  10483 10440  0  80   0 -  5780 poll_s Aug15 pts/4    00:00:00  |               \_ /bin/bash
+4 S root     12901  1370  0  80   0 - 26999 -      Aug17 ?        00:00:00  \_ sshd: student [priv]
+5 S student  12985 12901  0  80   0 - 27078 -      Aug17 ?        00:03:48      \_ sshd: student@notty
+0 S student  12986 12985  0  80   0 - 173269 poll_s Aug17 ?       00:00:32          \_ /usr/bin/python /usr/bin/terminator
+0 S student  13006 12986  0  80   0 -  5883 wait   Aug17 pts/5    00:00:00              \_ /bin/bash
+0 R student  21037 13006  0  80   0 - 10069 -      12:42 pts/5    00:00:00              |   \_ ps -Nlf --ppid 2 --forest
+0 S student  21038 13006  0  80   0 -  3716 pipe_w 12:42 pts/5    00:00:00              |   \_ grep --color=auto -B 8 ps
+```
+* -- context 4 
+> 4 above and 4 below
+```
+student@lin-ops:~$ ps -Nlf --ppid 2 --forest | grep ps --context=4
+4 S root     12901  1370  0  80   0 - 26999 -      Aug17 ?        00:00:00  \_ sshd: student [priv]
+5 S student  12985 12901  0  80   0 - 27078 -      Aug17 ?        00:03:48      \_ sshd: student@notty
+0 S student  12986 12985  0  80   0 - 173269 poll_s Aug17 ?       00:00:33          \_ /usr/bin/python /usr/bin/terminator
+0 S student  13006 12986  0  80   0 -  5883 wait   Aug17 pts/5    00:00:00              \_ /bin/bash
+0 R student  21044 13006  0  80   0 - 10069 -      12:45 pts/5    00:00:00              |   \_ ps -Nlf --ppid 2 --forest
+0 S student  21045 13006  0  80   0 -  3716 -      12:45 pts/5    00:00:00              |   \_ grep --color=auto ps --context=4
+0 S student  16667 12986  0  80   0 -  5807 poll_s Aug19 pts/6    00:00:00              \_ /bin/bash
+0 S student  16677 12986  0  80   0 -  5779 poll_s Aug19 pts/7    00:00:00              \_ /bin/bash
+0 S student  16686 12986  0  80   0 -  5779 wait   Aug19 pts/8    00:00:00              \_ /bin/bash
+0 S student  17046 16686  0  80   0 - 11767 poll_s Aug19 pts/8    00:00:00                  \_ ssh andy.dwyer@10.50.27.97
+```
+#### htop
+> F5: Tree  
+  F2: Change fields
+
+### Notes 
+Kernel Space processes have access to everything
+User space processes have a small pooled of reserved memory (wont bring down the whole system if it dies)
+
+#### Process Ownership, EUID, RUID
+##### EUID: Effective user ID
+Defines the access rights for a process
+##### RUID Real user ID
+Who initiated a process
+- The user that can kill a process
+
+##### User
+An entity that can run processes and own files
+
+##### System Calls
+An interaction between a process and the kernel
+###### fork()
+The kernel creates a nearly identical copy of the process
+Capital C in chron is a child process (chronjob running)
+
+###### exec() 
+When a process calls exec(program), the kernel starts program, replacing the current process
+
+###### Orphan process
+* Parent process exited -> adopted by sbin/init or intid
+  * All daemons are orphans
+  * disown -a && exit #close a shell/terminal and force all children to be adopted
+
+###### Zombie (defunct) 
+* Completed process that is waiting on parent to ack or term
+* Cant be terminated with kill
+* Will have a 'Z' in the field
+* Locate using htop in tree view
+
+
+
+Set the max processes a user can run to x  
+(prevent a fork bomb)  
+`ulimit -u x`  
+
+#### Daemons (Services)
+* Program that runs as a background process
+* All daemons are orphans
+* Can be used for persistence (chronjobs)
+`ps --ppid 1 -lf` <---- view all daemons
+
+#### Jobs
+```
+`jobs` Display list of jobs running in the background
+`kill %<job number>` Terminate by job #
+`[ctrl-z]` or `kill -19` stop / suspend the job
+`kill -9 <PID>` or `pkill -9 <process name>`
+```
+#### Cron Jobs
+* Checks the directories /var/spool/cron, /etc/cron.d and the file /etc/crontab  
+  once a min and executes matches
+
+* Two types of Cron jobs
+  * System Cron Jobs
+    * Run as root
+    * Perform system-wide maintenance tasks
+    * Controlled by /etc/crontab
+
+  * User cron jobs
+    * Use `crontab` command to create user cron jobs
+      * -e # edit my jobs
+      * -l # list my jobs
+      * sudo crontab -l -u <username> #list jobs for another user 
+      * sudo crontab -e -u <username> #edit jobs for another user
+    * Located in: `var/spool/cron/crontabs/<user>`
+  
+>Run with the permissions of the owner of the crontab file
+
+#### Proc dir
+```
+student@lin-ops:~$ la /proc
+1      1067   12901  1587   1824   201    22   38   47   acpi         kallsyms      schedstat
+10     10677  12985  16     1826   20715  230  385  48   buddyinfo    kcore         scsi
+100    1078   12986  1618   1827   20783  24   39   49   bus          key-users     self
+102    1079   12999  1656   1828   20807  25   4    52   cgroups      keys          slabinfo
+103    1081   13     16667  1829   20951  26   40   53   cmdline      kmsg          softirqs
+10332  1082   13000  16677  1830   20986  27   41   54   consoles     kpagecgroup   stat
+10334  1083   13006  16686  1831   20998  28   42   6    cpuinfo      kpagecount    swaps
+10335  1093   1359   17046  1832   21     30   43   688  crypto       kpageflags    sys
+104    11     1365   1721   1839   21000  300  432  698  devices      loadavg       sysrq-trigger
+10425  1100   137    1734   1844   21008  31   44   7    diskstats    locks         sysvipc
+10426  111    1370   1739   1851   21051  32   441  8    dma          mdstat        thread-self
+```
+#### Check what files a process utilizes
+```
+student@lin-ops:~$ sudo lsof -p 10332
+COMMAND   PID USER   FD   TYPE             DEVICE SIZE/OFF   NODE NAME
+sshd    10332 root  cwd    DIR                8,1     4096      2 /
+sshd    10332 root  rtd    DIR                8,1     4096      2 /
+sshd    10332 root  txt    REG                8,1   790952  22055 /usr/sbin/sshd
+sshd    10332 root  mem    REG                8,1    14464   9270 /lib/x86_64-linux-gnu/security/pam_env.so
+sshd    10332 root  mem    REG                8,1    22872   9280 /lib/x86_64-linux-gnu/security/pam_limits.so
+sshd    10332 root  mem    REG                8,1    10312   9284 /lib/x86_64-linux-gnu/security/pam_mail.so
+                        
+                                                                                                     ...
+# Don't look at those above this (cwd, rtd, txt, mem)                                                                             
+...
+sshd    10332 root    0r   CHR                1,3      0t0      6 /dev/null
+sshd    10332 root    1u   CHR                1,3      0t0      6 /dev/null
+sshd    10332 root    2u   CHR                1,3      0t0      6 /dev/null
+sshd    10332 root    3u  IPv4             757151      0t0    TCP lin-ops:ssh->192.168.241.193:60346 (ESTABLISHED)
+sshd    10332 root    4u  unix 0xffff9a9634e6ac00      0t0 756129 type=DGRAM
+sshd    10332 root    5u   CHR                5,2      0t0     87 /dev/ptmx
+sshd    10332 root    6u  unix 0xffff9a962f35d400      0t0 756198 type=STREAM
+sshd    10332 root    7w  FIFO               0,24      0t0    645 /run/systemd/sessions/653.ref
+student@lin-ops:~$ 
+```
+#### View services on systemd
+```
+  student@lin-ops:~$ systemctl --type service
+  UNIT                                 LOAD   ACTIVE SUB     DESCRIPTION                               
+  accounts-daemon.service              loaded active running Accounts Service                          
+  apparmor.service                     loaded active exited  AppArmor initialization                   
+  apport.service                       loaded active exited  LSB: automatic crash report generation    
+  atd.service                          loaded active running Deferred execution scheduler              
+  auditd.service                       loaded active running Security Auditing Service                 
+  blk-availability.service             loaded active exited  Availability of block devices             
+  cloud-config.service                 loaded active exited  Apply the settings specified in cloud-confi
+  cloud-final.service                  loaded active exited  Execute cloud user/final scripts          
+  cloud-init-local.service             loaded active exited  Initial cloud-init job (pre-networking)   
+  cloud-init.service                   loaded active exited  Initial cloud-init job (metadata service cr
+ ```
+
+##### Look for timers
+```
+student@lin-ops:~$ systemctl --type timer
+UNIT                         LOAD   ACTIVE SUB     DESCRIPTION                           
+anacron.timer                loaded active waiting Trigger anacron every hour            
+fstrim.timer                 loaded active waiting Discard unused blocks once a week     
+motd-news.timer              loaded active waiting Message of the Day                    
+systemd-tmpfiles-clean.timer loaded active waiting Daily Cleanup of Temporary Directories
+
+LOAD   = Reflects whether the unit definition was properly loaded.
+ACTIVE = The high-level unit activation state, i.e. generalization of SUB.
+SUB    = The low-level unit activation state, values depend on unit type.
+
+4 loaded units listed. Pass --all to see loaded but inactive units, too.
+To show all installed unit files use 'systemctl list-unit-files'.
+```
+#### Persistence on Reboot 
+`cat /etc/inittab`
+
+
+    1  1678 root       20   0  4028  1056   988 S  0.0  0.1  0:02.49 /sauron    
+ 1678  4897 root       20   0  4028   640   580 S  0.0  0.0  0:00.00 /usr/local/bin/thenine
+ 4897  4898 root       20   0  4160    68     0 S  0.0  0.0  0:00.00 ________Nazgul________
+ 4898  4899 root       20   0     0     0     0 Z  0.0  0.0  0:00.00 thenine
+
+
+
+ 8216 root       20   0 21776  3468  3204 S  0.0  0.1  0:00.00 ├─ /bin/bash -c netcat -lp 3389 < /tmp/NMAP_all_hosts.txt
+ 8227 root       20   0 13600  1120  1016 S  0.0  0.0  0:00.00 │  └─ netcat -lp 3389
+
+-------------------------------------------------------------------------------------------
+Memory Analysis
+-------------------------------------------------------------------------------------------
+
+### Volatile Memory 
+
+* Non-persistent
+
+* Requires power to maintain the stored information; it retains its contents while powered on but when     the power is interrupted, the stored data is immediately lost
+  * RAM
+
+### Non-Volatile Memory
+
+* Persistent
+* Does not require a continuous power supply to retain the data stored in a computing device
+  * HDD
+  * USB
+
+* Data that has not been stored on disk yet is present in memory
+* Files that have been deleted or modified can be scraped from RAM and used as evidence or for timelining an attack
+* Examples: 
+  * Bash history is written to .bash_history once the terminal session is terminated, however each command that has been ran during the current terminal session resides in RAM and can be viewed using the bash plugin
+  * If the ~/.bash_history has been deleted, using the same method as above we can still retrieve all commands executed
+  * Logs that have been deleted or modified can be read and scraped from memory using the mfind mcat & mls plugins
+
+Memory Analysis
+* Analyzing a system’s RAM to determine information about running programs, the operating system, and the overall state of a computer
+
+Order of Volatility 
+
+1. CPU registers, cache 
+2. Routing table, ARP cache, process table, kernel stats, memory
+3. Temporary file systems (Temp folder)
+4. Disk 
+5. Remote logging and monitoring data
+6. Physical configuration, network topology
+7. Archival media - backups
+
+### Volatility (Tool)
+* Memory Analysis framework
+* Volatility provides cross-platform solutions on Windows, Mac OSX, and Linux
+* Each operating system has its own memory acquisition tool called Persistent Memory (pmem)
+  * Linpmem
+  * Winpmem
+  * OSXpmem
+
+#### Profiles
+* What is a profile?
+  * A Profile provides Volatility with a memory layout based on the kernel of the machine upon which it’s created. This ensures Volatility is able to parse the memory image appropriately and return expected data when given a command
+  * Volatility hosts a profile repository with most known Windows builds; however, their Linux profile selection     
+     * Cloning the repository to a local machine is possible for offline analysis needs
+  * The best practice is to create your own profile for Linux machines
+
+```
+ .\volatility_2.6_win64_standalone.exe -f <filename> 
+
+#Options
+--profile<profile>
+
+#Plugins
+# Syntax plugOne;plugtwo
+imageinfo <--- to get profile
+
+
+PS C:\Users\andy.dwyer\Desktop\Memory Analysis> .\volatility_2.6_win64_standalone.exe -f .\cridex.vmem imageinfo
+Volatility Foundation Volatility Framework 2.6
+INFO    : volatility.debug    : Determining profile based on KDBG search...
+          Suggested Profile(s) : WinXPSP2x86, WinXPSP3x86 (Instantiated with WinXPSP2x86)
+                     AS Layer1 : IA32PagedMemoryPae (Kernel AS)
+                     AS Layer2 : FileAddressSpace (C:\Users\andy.dwyer\Desktop\Memory Analysis\cridex.vmem)
+                      PAE type : PAE
+                           DTB : 0x2fe000L
+                          KDBG : 0x80545ae0L
+          Number of Processors : 1
+     Image Type (Service Pack) : 3
+                KPCR for CPU 0 : 0xffdff000L
+             KUSER_SHARED_DATA : 0xffdf0000L
+           Image date and time : 2012-07-22 02:45:08 UTC+0000
+     Image local date and time : 2012-07-21 22:45:08 -0400
+```
+plist
+```
+PS C:\Users\andy.dwyer\Desktop\Memory Analysis> .\volatility_2.6_win64_standalone.exe -f .\cridex.vmem --profile=WinXPSP2x86 pslist
+Volatility Foundation Volatility Framework 2.6
+Offset(V)  Name                    PID   PPID   Thds     Hnds   Sess  Wow64 Start                          Exit
+---------- -------------------- ------ ------ ------ -------- ------ ------ ------------------------------ ------------------------------
+0x823c89c8 System                    4      0     53      240 ------      0
+0x822f1020 smss.exe                368      4      3       19 ------      0 2012-07-22 02:42:31 UTC+0000
+0x822a0598 csrss.exe               584    368      9      326      0      0 2012-07-22 02:42:32 UTC+0000
+0x82298700 winlogon.exe            608    368     23      519      0      0 2012-07-22 02:42:32 UTC+0000
+0x81e2ab28 services.exe            652    608     16      243      0      0 2012-07-22 02:42:32 UTC+0000
+0x81e2a3b8 lsass.exe               664    608     24      330      0      0 2012-07-22 02:42:32 UTC+0000
+0x82311360 svchost.exe             824    652     20      194      0      0 2012-07-22 02:42:33 UTC+0000
+0x81e29ab8 svchost.exe             908    652      9      226      0      0 2012-07-22 02:42:33 UTC+0000
+0x823001d0 svchost.exe            1004    652     64     1118      0      0 2012-07-22 02:42:33 UTC+0000
+0x821dfda0 svchost.exe            1056    652      5       60      0      0 2012-07-22 02:42:33 UTC+0000
+0x82295650 svchost.exe            1220    652     15      197      0      0 2012-07-22 02:42:35 UTC+0000
+0x821dea70 explorer.exe           1484   1464     17      415      0      0 2012-07-22 02:42:36 UTC+0000
+0x81eb17b8 spoolsv.exe            1512    652     14      113      0      0 2012-07-22 02:42:36 UTC+0000
+0x81e7bda0 reader_sl.exe          1640   1484      5       39      0      0 2012-07-22 02:42:36 UTC+0000
+0x820e8da0 alg.exe                 788    652      7      104      0      0 2012-07-22 02:43:01 UTC+0000
+0x821fcda0 wuauclt.exe            1136   1004      8      173      0      0 2012-07-22 02:43:46 UTC+0000
+0x8205bda0 wuauclt.exe            1588   1004      5      132      0      0 2012-07-22 02:44:01 UTC+0000
+```
+pstree
+```
+PS C:\Users\andy.dwyer\Desktop\Memory Analysis> .\volatility_2.6_win64_standalone.exe -f .\cridex.vmem --profile=WinXPSP2x86 pstree
+Volatility Foundation Volatility Framework 2.6
+Name                                                  Pid   PPid   Thds   Hnds Time
+-------------------------------------------------- ------ ------ ------ ------ ----
+ 0x823c89c8:System                                      4      0     53    240 1970-01-01 00:00:00 UTC+0000
+. 0x822f1020:smss.exe                                 368      4      3     19 2012-07-22 02:42:31 UTC+0000
+.. 0x82298700:winlogon.exe                            608    368     23    519 2012-07-22 02:42:32 UTC+0000
+... 0x81e2ab28:services.exe                           652    608     16    243 2012-07-22 02:42:32 UTC+0000
+.... 0x821dfda0:svchost.exe                          1056    652      5     60 2012-07-22 02:42:33 UTC+0000
+.... 0x81eb17b8:spoolsv.exe                          1512    652     14    113 2012-07-22 02:42:36 UTC+0000
+.... 0x81e29ab8:svchost.exe                           908    652      9    226 2012-07-22 02:42:33 UTC+0000
+.... 0x823001d0:svchost.exe                          1004    652     64   1118 2012-07-22 02:42:33 UTC+0000
+..... 0x8205bda0:wuauclt.exe                         1588   1004      5    132 2012-07-22 02:44:01 UTC+0000
+..... 0x821fcda0:wuauclt.exe                         1136   1004      8    173 2012-07-22 02:43:46 UTC+0000
+.... 0x82311360:svchost.exe                           824    652     20    194 2012-07-22 02:42:33 UTC+0000
+.... 0x820e8da0:alg.exe                               788    652      7    104 2012-07-22 02:43:01 UTC+0000
+.... 0x82295650:svchost.exe                          1220    652     15    197 2012-07-22 02:42:35 UTC+0000
+... 0x81e2a3b8:lsass.exe                              664    608     24    330 2012-07-22 02:42:32 UTC+0000
+.. 0x822a0598:csrss.exe                               584    368      9    326 2012-07-22 02:42:32 UTC+0000
+ 0x821dea70:explorer.exe                             1484   1464     17    415 2012-07-22 02:42:36 UTC+0000
+. 0x81e7bda0:reader_sl.exe                           1640   1484      5     39 2012-07-22 02:42:36 UTC+0000
+
+```
+Note: __Explorer should not be a parent of anything___
+
+procdump
+```
+PS C:\Users\andy.dwyer\Desktop\Memory Analysis> .\volatility_2.6_win64_standalone.exe -f .\cridex.vmem --profile=WinXPSP2x86 procdump -p 1640 -D .
+Volatility Foundation Volatility Framework 2.6
+Process(V) ImageBase  Name                 Result
+---------- ---------- -------------------- ------
+0x81e7bda0 0x00400000 reader_sl.exe        OK: executable.1640.exe
+PS C:\Users\andy.dwyer\Desktop\Memory Analysis>
+PS C:\Users\andy.dwyer\Desktop\Memory Analysis> gci   <---- note it is in the directory now
+
+
+    Directory: C:\Users\andy.dwyer\Desktop\Memory Analysis
+
+
+Mode                LastWriteTime         Length Name
+----                -------------         ------ ----
+d-----         3/1/2022   3:38 PM                volatility_2.6_win64_standalone
+-a----       10/10/2011  12:42 PM      268435456 0zapftis.vmem
+-a----         8/1/2012  11:23 PM      536870912 cridex.vmem
+-a----        8/26/2022   1:36 PM          29184 executable.1640.exe
+-a----       12/27/2016  10:02 AM       15794079 volatility_2.6_win64_standalone.exe
+```
+Get the Hash
+
+```
+PS C:\Users\andy.dwyer\Desktop\Memory Analysis> Get-FileHash .\executable.1640.exe
+
+Algorithm       Hash                                                                   Path
+---------       ----                                                                   ----
+SHA256          5B136147911B041F0126CE82DFD24C4E2C79553B65D3240ECEA2DCAB4452DCB5       C:\Users\andy.dwyer\Desktop\Memory Analysis\executable.1640.exe
+
+# Check in virus total
+```
+memdump
+```
+PS C:\Users\andy.dwyer\Desktop\Memory Analysis> .\volatility_2.6_win64_standalone.exe -f .\cridex.vmem --profile=WinXPSP2x86 memdump -p 1640 -D .
+Volatility Foundation Volatility Framework 2.6
+************************************************************************
+Writing reader_sl.exe [  1640] to 1640.dmp
+```
+Now use sysinternals to extract the sttrings
+```
+PS C:\Users\andy.dwyer\Desktop\Memory Analysis> .\volatility_2.6_win64_standalone.exe -f .\cridex.vmem --profile=WinXPSP2x86 memdump -p 1640 -D .
+Volatility Foundation Volatility Framework 2.6
+************************************************************************
+Writing reader_sl.exe [  1640] to 1640.dmp
+PS C:\Users\andy.dwyer\Desktop\Memory Analysis> net use *\\live.sysinternals.com\tools
+System error 67 has occurred.
+
+The network name cannot be found.
+
+PS C:\Users\andy.dwyer\Desktop\Memory Analysis> net use * \\live.sysinternals.com\tools
+Drive Z: is now connected to \\live.sysinternals.com\tools.
+
+The command completed successfully.
+```
+Now Look at the file using np++
+
+Now Look at connections
+```
+# connections
+
+PS C:\Users\andy.dwyer\Desktop\Memory Analysis> .\volatility_2.6_win64_standalone.exe -f .\cridex.vmem --profile=WinXPSP2x86 connections
+Volatility Foundation Volatility Framework 2.6
+Offset(V)  Local Address             Remote Address            Pid
+---------- ------------------------- ------------------------- ---
+0x81e87620 172.16.112.128:1038       41.168.5.140:8080         1484
+
+# conscan: Includes recently closed connections
+
+PS C:\Users\andy.dwyer\Desktop\Memory Analysis> .\volatility_2.6_win64_standalone.exe -f .\0zapftis.vmem --profile=WinXPSP2x86 connscan
+Volatility Foundation Volatility Framework 2.6
+Offset(P)  Local Address             Remote Address            Pid
+---------- ------------------------- ------------------------- ---
+0x01a25a50 0.0.0.0:1026              172.16.98.1:6666          1956
+
+```
+Looking for processes 
+* pslist
+* pstree
+* psscan
+
+Looking for dlls an exe is using
+* dlllist
+* dlldump
+
+Network Artifacts
+* connections
+* conscan
+
+Registry Analysis
+* hivedump
+* hivelist
+* dumpregistry
+
+--------------------------------------------------------------------------------------
+OS Windows Boot Process and BCD
+--------------------------------------------------------------------------------------
+
+#### BIOS
+* Will check to see if the MBR exists
+* Only allows up to 4 partitions at a time
+
+Bootmanager manages the boot process
+* i.e, if you have multiple OS installed
+
+Winload
+* When loading from a hard power off (cold start)
+
+Winresume
+* When loading from hibernation
+> Windows 10 has `fast boot` enabled by default    
+  Hibernations saves the state of the RAM and reloads it when you start the computer again    
+  You should restart once in a while to clean up RAM
+
+#### UEFI
+* Does not check if the GPT exists
+* It will check if a drive contains the GPT
+
+#### Pre-Boot Process
+```
+Post
+    Bios
+        MBR -> Volume Boot Sector 
+                -> Bootloader (NTLDR.exe) Kernel 5
+                -> Bootloader (Bootmgr.exe) Kernel 6+
+
+    UEFI
+        GUID Partition Table -> Boot Manager (Bootmgrfw.efi)
+```
+#### Boot-Process
+```
+Boot.ini (Legacy Kernel 5) 
+               -> NTOSKRNL
+
+BCD (Kernel 6+) -> Bootloader (Windload.exe/Winresume.exe)
+                                               -> NTOSKRNL
+                -> Bootloader (Winload.efi/Winresume.efi) 
+                                               -> NTOSKRNL
+```
+Check what mode Windows was loaded in 
+```
+PS C:\windows\System32> bcdedit | findstr /i winload
+path                    \windows\system32\winload.exe
+
+PS C:\windows\System32> bcdedit | findstr /i winresume
+
+```
+#### Bcdedit
+```
+Windows Boot Manager
+--------------------
+identifier              {bootmgr}
+device                  partition=C:
+description             Windows Boot Manager
+locale                  en-US
+inherit                 {globalsettings}
+default                 {current}
+resumeobject            {2bd08882-0f8f-11e9-94b6-0002c9550dce}
+displayorder            {current}
+toolsdisplayorder       {memdiag}
+timeout                 30
+
+Windows Boot Loader
+-------------------
+identifier              {current}                       <----- This is the most important one
+device                  partition=C:
+path                    \windows\system32\winload.exe   <----- Which bootloader was used
+description             Windows 10
+locale                  en-US
+inherit                 {bootloadersettings}
+recoverysequence        {91061b50-0fa8-11e9-aa6e-00155d49334a}
+displaymessageoverride  Recovery
+recoveryenabled         Yes
+allowedinmemorysettings 0x15000075
+osdevice                partition=C:
+systemroot              \windows
+resumeobject            {2bd08882-0f8f-11e9-94b6-0002c9550dce}
+nx                      OptIn
+bootmenupolicy          Standard
+
+```
+```
+bcdedit /set <field> <value>
+```
+msconfig 
+
+-> Boot -> Select options
+
+-> Services -> Check "Hide all Microsoft Services"
+
+------------------------------------------------------------------------------------
+OS Bash
+------------------------------------------------------------------------------------
+#### Creating aliases for SSH
+
+1. open terminal using ctrl-alt-t
+2. `vim .ssh/config`  
+```
+Host linops
+    HostName 10.50.38.211
+    User student
+    Port 22
+```
+
+
+#### Enumeration
+
+* Where am I?   
+  `hostname -a`
+* Who am I?    
+  `whoami` / `id`  
+* What am I allowed to do?   
+  `sudo -l`
+* Whats going on?   
+  `w`/`who`/`ps -elf`
+* What is that? -- TODO
+* Why is that happening? -- TODO
+* How is that happening? -- TODO 
+* Whats in there? 
+* IPs   
+```
+  ifconfig #depricated
+  ip addr 
+```
+* Open ports
+```
+  netstat -ntlp #depricated
+  ss -ntlp
+  
+  #Need sudo to see the processes
+```
+* Routes   
+  `ip route`
+
+* Check what machines your machine has talked to
+```
+arp
+ip neigh
+ip
+```
+* Firewalls
+```
+sudo !!
+nft list tables
+```
+
+### Day 1 Notes:
+
+#### File Structure
+
+`man hier`
+
+/bin  (/usr/bin,/usr/local/bin)
+ >contains regular system binaries  
+
+/sbin (/usr/sbin)
+ >system binaries <- require `sudo` to use
+
+/home
+ >default for a users home directory
+
+/usr 
+ >universal system resources
+ >Files used by the entire system
+
+/etc
+ > Everything that is configurable
+
+/var
+ > Files that are likely to change in length   
+   i.e, Logs
+
+/boot 
+> Directory that is read at boot (Boot-loaders such as Grub)
+
+/dev 
+> Streams   
+Special Device Files   
+Anything the system utilizes
+
+/lib
+> Library (like dlls)
+
+/mnt
+> reserved for permanently attached external storage
+
+/media
+> Removable media
+
+/opt
+> Optional (reserved) for files you installed as a user
+
+/run
+> Holds info related to a session of the computer running 
+
+/tmp
+> Temporary files
+
+/proc
+> Processes
+
+#### Users
+
+`/etc/passwrd`
+
+##### Groups
+`etc/group`
+```
+student@lin-ops:~$ cat /etc/group | grep student
+sudo:x:27:ubuntu,student #student here uses that group as a secondary GID
+student:x:1001:
+```
+`ls -lisa`   
+* Shows permissions and owners   
+
+> u g o
+user
+group
+other
+
+750 student:student
+u = 7
+g = 5
+o = 0
+
+##### SUID 
+`find / -perm /4000 2>/dev/null -exec ls -la {} \;`
+Will be executed as the user who owns it (such as root)
+```
+ls -lisa /usr/bin/passwd
+12062 60 -rwsr-xr-x 1 root root 59640 Mar 22  2019 /usr/bin/passwd
+
+# The s shows it will be run as root
+```
+##### SGID
+`find / -perm /2000 2>/dev/null -exec ls -la {} \;`
+Same as SUID except for groups
+
+
+##### Sticky Bit
+`find / -perm /1000 2>/dev/null -exec ls -la {} \;`
+In a given shared directory, any file with sticky bit turned on can only be   
+deleted by the person who created the file
+
+#### Getting Help
+```
+man <command>
+man -k <keyword>
+
+<command> --help
+
+apropos <keywords> # search for command by keyword
+BUGS
+
+```
+##### Search for a commands location
+``` 
+which
+whereis
+``` 
+Check which shell you are in
+```
+echo $0
+source ./bashrc
+```
+Check which shells are on the box
+`cat /etc/shells`   
+
+##### Count lines in files in a directory
+`find . -maxdepth 1 -type f -exec wc -l {} \;`   
+
+##### Find the diff of two files
+grep -Fwof file1 file2
+
+-------------------------------------------------------------------------------------------------------
+OS Powershell 
+-------------------------------------------------------------------------------------------------------
+
+### Links
+https://os.cybbh.io/public/os/latest/index.html   
+   
+http://10.50.22.25:8000/
+
+xfreerdp /u:student /v:IPADDR /dynamic-resolution +glyph-cache +clipboard
+
+### Windows RDP
+get-item WSMAN:\localhost\client
+
+#### Creating a session
+These are temporary sessions for a single command   
+
+`Invoke-command -ComputerName pwnd_host { restart-computer -force } -AsJob`
+
+```
+#This will execute the script on all three computers and print the results to our screen
+Invoke-command -ComputerName workstation3,server4,webserver5 c:\Windows\findevil.ps1
+```
+This is a persistent session
+
+`New-PSSession -ComputerName`
+
+
+
+
+
+
+
+
+
