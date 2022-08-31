@@ -358,7 +358,6 @@ C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\The Internet.lnk      
 C:\Users\student\AppData\Roaming\Microsoft\Windows\Recent\Windows Defender Advanced Threat Protection.lnk                 8/22/2022 7:37:23 PM
 
 -------------------------------------------------------------------------------------------------------------
--------------------------------------------------------------------------------------------------------------
 
 # Creation Time
 
@@ -525,6 +524,7 @@ Find Last access time of a file
 
 
 -------------------------------------------------------------------------------------------------
+Bash
 -------------------------------------------------------------------------------------------------
 
 ### Help Tools
@@ -927,7 +927,7 @@ echo Bye quitter
 ```
 
 -----------------------------------------------------------------------------------------
-Logging
+Linux Auditing and Logging
 -----------------------------------------------------------------------------------------
 
 ## Log Types
@@ -2276,12 +2276,4 @@ Invoke-command -ComputerName workstation3,server4,webserver5 c:\Windows\findevil
 This is a persistent session
 
 `New-PSSession -ComputerName`
-
-
-
-
-
-
-
-
 
