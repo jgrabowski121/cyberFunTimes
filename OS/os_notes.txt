@@ -6,6 +6,11 @@ https://os.cybbh.io/public/os/latest/index.html
 OS Review
 ---------------------------------------------------------------------------------------
 0. Pick the correct answer   
+*****
+Look for hidden Files!!
+ls -la
+Or dir --hidden
+*****
 
 ### Linux
 Process validity: Why is it happening?
