@@ -1,3 +1,27 @@
 Links
 https://net.cybbh.io/public/networking/latest/index.html
 http://10.50.20.75:8000/
+http://10.50.22.14:8000/
+https://miro.com/app/board/o9J_klSqCSY=/
+
+Network Fundamentals
+
+Binary Identification
+
+Num Bits    Common representatino
+1           Bit/ Flag
+4           Nibble
+8           Byte/ Octet
+16          Half Word
+32          Word
+64          Very Long Word
+
+Base (N) Formats
+
+Common Formats
+
+Base 2 - 01000010 01100001 01110011 01100101 00100000 00110010
+Base 10 - 66 97 115 101 32 49 48
+Base 16 - 42 61 73 65 20 31 36
+Base 64 - QmFzZSA2NA==
+
